@@ -72,7 +72,7 @@ def train(argv):
         train_writer = tf.summary.FileWriter(LOG_DIR + '/train', sess.graph)
         test_writer = tf.summary.FileWriter(LOG_DIR + '/test')
         sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())
+        sess.run(model.running_validation_vars_init)
         saver = tf.train.Saver()
 
         for epoch_id in range(epoch_num):

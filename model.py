@@ -291,13 +291,13 @@ class Model():
             #     tf.cast(tf.equal(self.prediction, tf.argmax(one_hot_labels, axis=1)), dtype=tf.float32))
             # TODO : precision and recall
             self.accuracy, self.accuracy_op = tf.metrics.accuracy(
-                labels=self.labels, predictions=self.prediction)
+                labels=self.labels, predictions=self.prediction, name="valid_metrics")
             self.precision, self.precision_op = tf.metrics.precision(
-                labels=self.labels, predictions=self.prediction)
+                labels=self.labels, predictions=self.prediction, name="valid_metrics")
             self.recall, self.recall_op = tf.metrics.recall(
-                labels=self.labels, predictions=self.prediction)
+                labels=self.labels, predictions=self.prediction, name="valid_metrics")
             self.auc, self.auc_op = tf.metrics.auc(
-                labels=self.labels, predictions=self.prediction)
+                labels=self.labels, predictions=self.prediction, name="valid_metrics")
             validation_vars = tf.get_collection(
                 tf.GraphKeys.LOCAL_VARIABLES, scope="valid_metrics")
             self.running_validation_vars_init = tf.variables_initializer(
