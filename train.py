@@ -176,6 +176,6 @@ if __name__ == "__main__":
         print('deleting the previous log direction...')
         shutil.rmtree(argv.output_log_dir)
         print('done')
-    os.mkdir(argv.output)
+    os.mkdir(argv.output_log_dir)
 
     train(argv)
