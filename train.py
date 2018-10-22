@@ -55,12 +55,6 @@ def train(argv):
     for file in os.listdir(argv.valid_dir):
         valid_files.append(argv.valid_dir + '/' + file)
 
-    # valid dataset
-    valid_dataset = tf.data.FixedLengthRecordDataset(valid_files, record_len).map(
-        lambda x: decode_line(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN,
-                              rname_len=argv.max_rname_len))
-    valid_dataset = valid_dataset.batch(batch_size)
-
     model = Model(base_num=FEATURE_LEN,
                   signal_num=SIGNAL_LEN, class_num=class_num)
     f = open('log.txt', 'w')
@@ -91,7 +85,8 @@ def train(argv):
             while True:
                 try:
                     features, label = sess.run(element)
-                except:
+                except tf.errors.OutOfRangeError:
+                    print('end of train dataset')
                     break
                 label = np.reshape(label, (label.shape[0]))
                 feed_dict = {model.base_int: features['base'],
@@ -113,13 +108,18 @@ def train(argv):
                     train_accuracy = sess.run(model.accuracy)
 
                     sess.run(model.running_validation_vars_init)
+                    # valid dataset
+                    valid_dataset = tf.data.FixedLengthRecordDataset(valid_files, record_len).map(lambda x: decode_line(
+                        value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN, rname_len=argv.max_rname_len))
+                    valid_dataset = valid_dataset.batch(batch_size)
                     valid_iterator = valid_dataset.make_one_shot_iterator()
                     valid_element = valid_iterator.get_next()
                     while True:
                         try:
                             valid_features, valid_labels = sess.run(
                                 valid_element)
-                        except:
+                        except tf.errors.OutOfRangeError:
+                            print('end of valid dataset')
                             break
                         valid_labels = np.reshape(
                             valid_labels, (valid_labels.shape[0]))
@@ -139,7 +139,6 @@ def train(argv):
                     summary = sess.run(merged, feed_dict=feed_dict)
                     test_writer.add_summary(summary, global_step=iter_id)
                     test_accuracy = sess.run(model.accuracy)
-
                     sess.run(model.running_validation_vars_init)
                     end = time.time()
                     line = "Epoch: %d train_loss: %.3f test_loss: %.3f train_accuracy: %.3f test_accuracy: %.3f time_cost: %.2f" % (
