@@ -302,6 +302,7 @@ class Model():
                 tf.GraphKeys.LOCAL_VARIABLES, scope="valid_metrics")
             self.running_validation_vars_init = tf.variables_initializer(
                 var_list=validation_vars)
+            tf.summary.scalar('loss', self.loss)
             tf.summary.scalar('accuarcy', self.accuracy)
             tf.summary.scalar('recall', self.recall)
             tf.summary.scalar('precision', self.precision)

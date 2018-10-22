@@ -110,7 +110,7 @@ def train(argv):
                 if iter_id % display_steps == 0:
                     # save the train batch summary
                     summary = sess.run(merged, feed_dict=feed_dict)
-                    train_writer.add_summary(summary)
+                    train_writer.add_summary(summary, global_step=iter_id)
                     train_accuracy = sess.run(model.accuracy)
 
                     sess.run(model.running_validation_vars_init)
@@ -136,7 +136,7 @@ def train(argv):
 
                     # save the valid dataset summary
                     summary = sess.run(merged, feed_dict=feed_dict)
-                    test_writer.add_summary(summary)
+                    test_writer.add_summary(summary, global_step=iter_id)
                     test_accuracy = sess.run(model.accuracy)
 
                     sess.run(model.running_validation_vars_init)
