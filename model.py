@@ -36,7 +36,8 @@ def inception_layer(indata, training, times=16):
     fea_shape = indata.get_shape().as_list()
     in_channel = fea_shape[-1]
     with tf.variable_scope('branch1_maxpooling'):
-        max_pool = tf.layers.max_pooling2d(indata, [1, 3], strides=1, padding="SAME", name="maxpool0a_1x3")
+        max_pool = tf.layers.max_pooling2d(
+            indata, [1, 3], strides=1, padding="SAME", name="maxpool0a_1x3")
         conv1a = tf.layers.conv2d(inputs=max_pool, filters=times * 3, kernel_size=[1, 1], strides=1, padding="SAME",
                                   use_bias=False, name='conv1a_1x1')
         conv1a = Batch_Normalization(conv1a, is_training=training, scope='bn')
@@ -65,24 +66,26 @@ def inception_layer(indata, training, times=16):
         conv1d = Batch_Normalization(conv1d, is_training=training, scope='bn2')
         conv1d = tf.nn.relu(conv1d)
     with tf.variable_scope('branch5_residual_1x3'):
-        conv_stem = tf.layers.conv2d(inputs=indata, filters=times *3, kernel_size=[1, 1], strides=1, padding="SAME", 
-            use_bias=False, name='convstem_1x1')
-        conv_stem = Batch_Normalization(conv_stem, is_training=training, scope='bn0')
-        conv0e = tf.layers.conv2d(inputs=indata, filters=times *2, kernel_size=[1, 1], strides=1, padding="SAME", 
-            use_bias=False, name='conv0e_1x1')
+        conv_stem = tf.layers.conv2d(inputs=indata, filters=times * 3, kernel_size=[1, 1], strides=1, padding="SAME",
+                                     use_bias=False, name='convstem_1x1')
+        conv_stem = Batch_Normalization(
+            conv_stem, is_training=training, scope='bn0')
+        conv0e = tf.layers.conv2d(inputs=indata, filters=times * 2, kernel_size=[1, 1], strides=1, padding="SAME",
+                                  use_bias=False, name='conv0e_1x1')
         conv0e = Batch_Normalization(conv0e, is_training=training, scope='bn1')
         conv0e = tf.nn.relu(conv0e)
-        conv1e = tf.layers.conv2d(inputs = conv0e, filters = times*4, kernel_size=[1,3], strides=1, padding="SAME",
-            use_bias=False, name='conv1e_1x3')
+        conv1e = tf.layers.conv2d(inputs=conv0e, filters=times*4, kernel_size=[1, 3], strides=1, padding="SAME",
+                                  use_bias=False, name='conv1e_1x3')
         conv1e = Batch_Normalization(conv1e, is_training=training, scope='bn2')
         conv1e = tf.nn.relu(conv1e)
-        conv2e = tf.layers.conv2d(inputs=conv1e, filters=times *3, kernel_size=[1, 1], strides=1, padding="SAME", 
-            use_bias=False, name='conv2e_1x1')
+        conv2e = tf.layers.conv2d(inputs=conv1e, filters=times * 3, kernel_size=[1, 1], strides=1, padding="SAME",
+                                  use_bias=False, name='conv2e_1x1')
         conv2e = Batch_Normalization(conv2e, is_training=training, scope='bn3')
 
-        conv_plus = tf.add(conv_stem,conv2e)
+        conv_plus = tf.add(conv_stem, conv2e)
         conv_plus = tf.nn.relu(conv_plus)
-    return (tf.concat([conv1a, conv0b, conv1c, conv1d,conv_plus], axis=-1, name='concat'))
+    return (tf.concat([conv1a, conv0b, conv1c, conv1d, conv_plus], axis=-1, name='concat'))
+
 
 class Model():
     def __init__(self, base_num, signal_num, class_num):
@@ -91,7 +94,8 @@ class Model():
             self.means = tf.placeholder(tf.float32, [None, base_num])
             self.stds = tf.placeholder(tf.float32, [None, base_num])
             self.sanums = tf.placeholder(tf.float32, [None, base_num])
-            self.signals = tf.placeholder(tf.float32, [None, signal_num])  # middle base signals
+            self.signals = tf.placeholder(
+                tf.float32, [None, signal_num])  # middle base signals
             self.labels = tf.placeholder(tf.int32, [None])
 
         with tf.name_scope('input_params'):
@@ -107,8 +111,10 @@ class Model():
                                 initializer=tf.truncated_normal_initializer(stddev=np.sqrt(2. / vocab_size)))
             embedded_base = tf.nn.embedding_lookup(W, self.base_int)
             fusion_vector1 = tf.concat([embedded_base,
-                                        tf.reshape(self.means, [-1, base_num, 1]),
-                                        tf.reshape(self.stds, [-1, base_num, 1]),
+                                        tf.reshape(
+                                            self.means, [-1, base_num, 1]),
+                                        tf.reshape(
+                                            self.stds, [-1, base_num, 1]),
                                         tf.reshape(self.sanums, [-1, base_num, 1])], axis=2)
             signals = tf.reshape(self.signals, [-1, 1, signal_num, 1])
         with tf.name_scope("Event_model"):
@@ -118,7 +124,8 @@ class Model():
                                              kprob=self.keep_prob)
             self.fw_out = rnn_out[0]
             self.bw_out = rnn_out[1]
-            extract_rnn_out = tf.concat([rnn_out[0][:, -1, :], rnn_out[1][:, 0, :]], axis=1)  # [batch,2*hidden_num]
+            extract_rnn_out = tf.concat(
+                [rnn_out[0][:, -1, :], rnn_out[1][:, 0, :]], axis=1)  # [batch,2*hidden_num]
             extract_rnn_shape = extract_rnn_out.get_shape().as_list()
             event_model_output = extract_rnn_out
 
@@ -157,19 +164,23 @@ class Model():
             with tf.variable_scope("conv_layer1"):
                 x = tf.layers.conv2d(inputs=input_signal, filters=64, kernel_size=[1, 7], strides=2, padding="SAME",
                                      use_bias=False, name="conv")
-                x = Batch_Normalization(x, is_training=self.training, scope='bn')
+                x = Batch_Normalization(
+                    x, is_training=self.training, scope='bn')
                 x = tf.nn.relu(x)  # [188,64]
             with tf.variable_scope("maxpool_layer1"):
-                x = tf.layers.max_pooling2d(x, [1, 3], strides=2, padding="SAME", name="maxpool")  # [94,64]
+                x = tf.layers.max_pooling2d(
+                    x, [1, 3], strides=2, padding="SAME", name="maxpool")  # [94,64]
             with tf.variable_scope("conv_layer2"):
                 x = tf.layers.conv2d(inputs=x, filters=128, kernel_size=[1, 1], strides=1, padding="SAME",
                                      use_bias=False, name="conv")
-                x = Batch_Normalization(x, is_training=self.training, scope='bn')
+                x = Batch_Normalization(
+                    x, is_training=self.training, scope='bn')
                 x = tf.nn.relu(x)  # [94,128]
             with tf.variable_scope("conv_layer3"):
                 x = tf.layers.conv2d(inputs=x, filters=256, kernel_size=[1, 3], strides=1, padding="SAME",
                                      use_bias=False, name="conv")
-                x = Batch_Normalization(x, is_training=self.training, scope='bn')
+                x = Batch_Normalization(
+                    x, is_training=self.training, scope='bn')
                 x = tf.nn.relu(x)  # [94,256]
             # inception layer x 11
             with tf.variable_scope('incp_layer1'):
@@ -179,7 +190,8 @@ class Model():
             with tf.variable_scope('incp_layer3'):
                 x = inception_layer(x, self.training)
             with tf.variable_scope('maxpool_layer2'):
-                x = tf.layers.max_pooling2d(x, [1, 3], strides=2, padding="SAME", name="maxpool")   # [47,192]
+                x = tf.layers.max_pooling2d(
+                    x, [1, 3], strides=2, padding="SAME", name="maxpool")   # [47,192]
             with tf.variable_scope('incp_layer4'):
                 x = inception_layer(x, self.training)
             with tf.variable_scope('incp_layer5'):
@@ -191,7 +203,8 @@ class Model():
             with tf.variable_scope('incp_layer8'):
                 x = inception_layer(x, self.training)
             with tf.variable_scope('maxpool_layer3'):
-                x = tf.layers.max_pooling2d(x, [1, 3], strides=2, padding="SAME", name="maxpool")   # [24,192]
+                x = tf.layers.max_pooling2d(
+                    x, [1, 3], strides=2, padding="SAME", name="maxpool")   # [24,192]
             with tf.variable_scope('incp_layer9'):
                 x = inception_layer(x, self.training)
             with tf.variable_scope('incp_layer10'):
@@ -199,7 +212,8 @@ class Model():
             with tf.variable_scope('incp_layer11'):
                 x = inception_layer(x, self.training)
             with tf.variable_scope('avgpool_layer1'):
-                x = tf.layers.average_pooling2d(x, [1, 7], strides=1, padding="SAME", name="avgpool")   # [24,192]
+                x = tf.layers.average_pooling2d(
+                    x, [1, 7], strides=1, padding="SAME", name="avgpool")   # [24,192]
             print('inception output shape:', x.get_shape().as_list())
             x_shape = x.get_shape().as_list()
             signal_model_output = tf.reshape(x, [-1, x_shape[2] * x_shape[3]])
@@ -253,22 +267,42 @@ class Model():
             # signal_model_output = tf.reshape(x, [x_shape[0], x_shape[2] * x_shape[3]])  # [batch,6*256]
 
         with tf.name_scope("Joint_model"):
-            joint_input = tf.concat([event_model_output, signal_model_output], axis=1)  # [batch,1536+256*2]
+            joint_input = tf.concat(
+                [event_model_output, signal_model_output], axis=1)  # [batch,1536+256*2]
             joint_input_shape = joint_input.get_shape().as_list()
             # fc1 = Fully_connected(joint_input, out_num=joint_input_shape[1], layer_name='joint_model_fc1')
             # drop1 = tf.nn.dropout(fc1, keep_prob = self.keep_prob)
             # fc2 = Fully_connected(drop1, class_num, layer_name="joint_model_fc2")
             # drop2 = tf.nn.dropout(fc2, keep_prob = self.keep_prob)
             # logits = drop2
-            fc1 = Fully_connected(joint_input, out_num=joint_input_shape[1], layer_name='joint_model_fc1')
+            fc1 = Fully_connected(
+                joint_input, out_num=joint_input_shape[1], layer_name='joint_model_fc1')
             fc2 = Fully_connected(fc1, class_num, layer_name="joint_model_fc2")
             logits = fc2
         with tf.name_scope("train_opts"):
             self.activation_logits = tf.nn.sigmoid(logits)
-            self.cost = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=one_hot_labels)
+            self.cost = tf.nn.sigmoid_cross_entropy_with_logits(
+                logits=logits, labels=one_hot_labels)
             self.loss = tf.reduce_mean(self.cost)
             self.train_opt = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss,
                                                                                     global_step=self.global_step)
             self.prediction = tf.argmax(self.activation_logits, axis=1)
-            self.accuracy = tf.reduce_mean(
-                tf.cast(tf.equal(self.prediction, tf.argmax(one_hot_labels, axis=1)), dtype=tf.float32))
+            # self.accuracy = tf.reduce_mean(
+            #     tf.cast(tf.equal(self.prediction, tf.argmax(one_hot_labels, axis=1)), dtype=tf.float32))
+            # TODO : precision and recall
+            self.accuracy, self.accuracy_op = tf.metrics.accuracy(
+                labels=self.labels, predictions=self.prediction)
+            self.precision, self.precision_op = tf.metrics.precision(
+                labels=self.labels, predictions=self.prediction)
+            self.recall, self.recall_op = tf.metrics.recall(
+                labels=self.labels, predictions=self.prediction)
+            self.auc, self.auc_op = tf.metrics.auc(
+                labels=self.labels, predictions=self.prediction)
+            validation_vars = tf.get_collection(
+                tf.GraphKeys.LOCAL_VARIABLES, scope="valid_metrics")
+            self.running_validation_vars_init = tf.variables_initializer(
+                var_list=validation_vars)
+            tf.summary.scalar('accuarcy', self.accuracy)
+            tf.summary.scalar('recall', self.recall)
+            tf.summary.scalar('precision', self.precision)
+            tf.summary.scalar('auc', self.auc)
