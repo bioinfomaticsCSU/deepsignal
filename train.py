@@ -60,8 +60,6 @@ def train(argv):
         lambda x: decode_line(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN,
                               rname_len=argv.max_rname_len))
     valid_dataset = valid_dataset.batch(batch_size)
-    valid_iterator = valid_dataset.make_one_shot_iterator()
-    valid_element = valid_iterator.get_next()
 
     model = Model(base_num=FEATURE_LEN,
                   signal_num=SIGNAL_LEN, class_num=class_num)
@@ -115,6 +113,8 @@ def train(argv):
                     train_accuracy = sess.run(model.accuracy)
 
                     sess.run(model.running_validation_vars_init)
+                    valid_iterator = valid_dataset.make_one_shot_iterator()
+                    valid_element = valid_iterator.get_next()
                     while True:
                         try:
                             valid_features, valid_labels = sess.run(
