@@ -59,7 +59,7 @@ def train(argv):
     valid_dataset = tf.data.FixedLengthRecordDataset(valid_files, record_len).map(
         lambda x: decode_line(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN,
                               rname_len=argv.max_rname_len))
-    valid_dataset = valid_dataset.batch(batch_size).repeat()
+    valid_dataset = valid_dataset.batch(batch_size)
     valid_iterator = valid_dataset.make_one_shot_iterator()
     valid_element = valid_iterator.get_next()
 
@@ -176,6 +176,6 @@ if __name__ == "__main__":
         print('deleting the previous log direction...')
         shutil.rmtree(argv.output_log_dir)
         print('done')
-    os.mkdir(argv.output_log_dir)
+    os.mkdir(argv.output)
 
     train(argv)
