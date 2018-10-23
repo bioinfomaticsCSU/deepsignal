@@ -298,8 +298,7 @@ class Model():
                 labels=self.labels, predictions=self.prediction, name="valid_metrics")
             self.auc, self.auc_op = tf.metrics.auc(
                 labels=self.labels, predictions=self.prediction, name="valid_metrics")
-            validation_vars = tf.get_collection(
-                tf.GraphKeys.LOCAL_VARIABLES, scope="valid_metrics")
+            validation_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES)
             self.running_validation_vars_init = tf.variables_initializer(
                 var_list=validation_vars)
             tf.summary.scalar('loss', self.loss)
