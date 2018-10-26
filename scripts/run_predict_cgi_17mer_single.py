@@ -4,7 +4,7 @@
  * @Author: huangneng 
  * @Date: 2018-10-26 15:27:23 
  * @Last Modified by: huangneng
- * @Last Modified time: 2018-10-26 18:29:23
+ * @Last Modified time: 2018-10-26 18:34:03
  */
 '''
 
@@ -19,7 +19,7 @@ test_path = '/home/huangneng/data/human_hx1.test.5xs/BJXWZ.x.hc_pos/hx1.tem.test
 out_name = result_path+'/result.txt'
 # print(test_path)
 # print(out_name)
-cmd = "CUDA_VISIBLE_DEVICES=3 python ../predict.py -i {input}/ -o {model}/ -r {output} -n {modelname} -x 21 -y 512 -z 60 ".format(
+cmd = "CUDA_VISIBLE_DEVICES=3 python ../predict.py -i {input}/ -o {model}/ -r {output} -n {modelname} -x 17 -y 375 -z 60 ".format(
     input=test_path, model=model_path, output=out_name, modelname=model_name)
 print(cmd)
 os.system(cmd)
