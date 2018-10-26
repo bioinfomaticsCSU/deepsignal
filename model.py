@@ -270,15 +270,13 @@ class Model():
             joint_input = tf.concat(
                 [event_model_output, signal_model_output], axis=1)  # [batch,1536+256*2]
             joint_input_shape = joint_input.get_shape().as_list()
-            # fc1 = Fully_connected(joint_input, out_num=joint_input_shape[1], layer_name='joint_model_fc1')
-            # drop1 = tf.nn.dropout(fc1, keep_prob = self.keep_prob)
-            # fc2 = Fully_connected(drop1, class_num, layer_name="joint_model_fc2")
-            # drop2 = tf.nn.dropout(fc2, keep_prob = self.keep_prob)
-            # logits = drop2
             fc1 = Fully_connected(
                 joint_input, out_num=joint_input_shape[1], layer_name='joint_model_fc1')
-            fc2 = Fully_connected(fc1, class_num, layer_name="joint_model_fc2")
-            logits = fc2
+            drop1 = tf.nn.dropout(fc1, keep_prob=self.keep_prob)
+            fc2 = Fully_connected(
+                drop1, class_num, layer_name="joint_model_fc2")
+            drop2 = tf.nn.dropout(fc2, keep_prob=self.keep_prob)
+            logits = drop2
         with tf.name_scope("train_opts"):
             self.activation_logits = tf.nn.sigmoid(logits)
             self.cost = tf.nn.sigmoid_cross_entropy_with_logits(
@@ -290,19 +288,19 @@ class Model():
             # self.accuracy = tf.reduce_mean(
             #     tf.cast(tf.equal(self.prediction, tf.argmax(one_hot_labels, axis=1)), dtype=tf.float32))
             # TODO : precision and recall
-            self.accuracy, self.accuracy_op = tf.metrics.accuracy(
-                labels=self.labels, predictions=self.prediction, name="valid_metrics")
-            self.precision, self.precision_op = tf.metrics.precision(
-                labels=self.labels, predictions=self.prediction, name="valid_metrics")
-            self.recall, self.recall_op = tf.metrics.recall(
-                labels=self.labels, predictions=self.prediction, name="valid_metrics")
-            self.auc, self.auc_op = tf.metrics.auc(
-                labels=self.labels, predictions=self.prediction, name="valid_metrics")
-            validation_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES)
-            self.running_validation_vars_init = tf.variables_initializer(
-                var_list=validation_vars)
-            tf.summary.scalar('loss', self.loss)
-            tf.summary.scalar('accuarcy', self.accuracy)
-            tf.summary.scalar('recall', self.recall)
-            tf.summary.scalar('precision', self.precision)
-            tf.summary.scalar('auc', self.auc)
+            # self.accuracy, self.accuracy_op = tf.metrics.accuracy(
+            #     labels=self.labels, predictions=self.prediction, name="valid_metrics")
+            # self.precision, self.precision_op = tf.metrics.precision(
+            #     labels=self.labels, predictions=self.prediction, name="valid_metrics")
+            # self.recall, self.recall_op = tf.metrics.recall(
+            #     labels=self.labels, predictions=self.prediction, name="valid_metrics")
+            # self.auc, self.auc_op = tf.metrics.auc(
+            #     labels=self.labels, predictions=self.prediction, name="valid_metrics")
+            # validation_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES)
+            # self.running_validation_vars_init = tf.variables_initializer(
+            #     var_list=validation_vars)
+            # tf.summary.scalar('loss', self.loss)
+            # tf.summary.scalar('accuarcy', self.accuracy)
+            # tf.summary.scalar('recall', self.recall)
+            # tf.summary.scalar('precision', self.precision)
+            # tf.summary.scalar('auc', self.auc)
