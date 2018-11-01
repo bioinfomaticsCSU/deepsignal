@@ -7,7 +7,7 @@
 import os
 
 model_path = "/home/huangneng/master_deepsignal/deepsignal/last_v_models/whole_genome_17mer_mixture"
-result_path = "/home/huangneng/master_deepsignal/deepsignal/last_v_results/whole_chrom_single"
+result_path = "/home/huangneng/master_deepsignal/deepsignal/last_v_results/whole_chrom_mixture_1"
 test_dir = "/home/huangneng/data/human_hx1.test.5xs/BJXWZ.C789101112D1E13"
 model_name = '4'
 
