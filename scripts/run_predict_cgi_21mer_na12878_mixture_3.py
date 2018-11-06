@@ -11,8 +11,8 @@
 import os
 
 model_path = "/home/huangneng/master_deepsignal/deepsignal/last_v_models/cgi_21mer_mixture"
-result_path = "/home/huangneng/master_deepsignal/deepsignal/last_v_results/cgi_21mer_na12878_mixture_2"
-test_dir = "/home/huangneng/data/na12878.test.bn21.cgi.30x/na12878.cgi.10x.2"
+result_path = "/home/huangneng/master_deepsignal/deepsignal/last_v_results/cgi_21mer_na12878_mixture_3"
+test_dir = "/home/huangneng/data/na12878.test.bn21.cgi.30x/na12878.cgi.10x.3"
 model_name = '19'
 
 for subdir in os.listdir(test_dir):
