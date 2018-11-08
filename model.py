@@ -109,7 +109,7 @@ class Model():
             self.event_model = Event_model(sequence_len=tf.ones_like(self.labels) * base_num,
                                            layer_num=3,
                                            hidden_num=256,
-                                           keep_prob=self.keep)
+                                           keep_prob=self.keep_prob)
             self.signal_model = incept_net()
             self.join_model = Joint_model(output_hidden=class_num,
                                           keep_prob=self.keep_prob)
