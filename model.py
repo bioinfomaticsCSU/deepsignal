@@ -67,9 +67,9 @@ class Model():
             event_model_output = self.event_model(input_event)
 
         with tf.name_scope("Signal_model"):
-            # input_signal = signals
-            # signal_model_output = self.signal_model(input_signal)
-            signal_model_output = None
+            input_signal = signals
+            signal_model_output = self.signal_model(input_signal)
+            # signal_model_output = None
 
         with tf.name_scope("Joint_model"):
             logits = self.join_model(event_model_output, signal_model_output)
