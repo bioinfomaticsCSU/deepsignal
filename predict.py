@@ -54,15 +54,18 @@ def predict(argv):
 
     fwrite = open(argv.result_file, 'w')
 
+    # data set
+    dataset = tf.data.FixedLengthRecordDataset(files, record_len).map(
+            lambda x: decode_line(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN, rname_len=argv.max_rname_len))
+    dataset = dataset.batch(batch_size)
+    iterator = dataset.make_initializable_iterator()
+    element = iterator.get_next()
+
     with tf.Session() as sess:
         saver = tf.train.Saver()
         saver.restore(sess, MODLE_DIR + MODEL_NAME)
         accuracy_list = []
-        dataset = tf.data.FixedLengthRecordDataset(files, record_len).map(
-            lambda x: decode_line(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN, rname_len=argv.max_rname_len))
-        dataset = dataset.batch(batch_size)
-        iterator = dataset.make_one_shot_iterator()
-        element = iterator.get_next()
+        sess.run(iterator.initializer)
         try:
             while True:
                 features, label = sess.run(element)
