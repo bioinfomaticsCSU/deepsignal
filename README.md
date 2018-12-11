@@ -6,15 +6,18 @@ Built with **Tensorflow 1.8** and python 3.
 ## Contents
 
 - [Install](#install)
-    -[Install using 'pip'](#install-using-pip)
+    -[Install tensorflow](#instal-tensorflow)
+    -[Install using `pip`](#install-using-pip)
     -[Install from Github](#install-from-github)
 - [Predict](#predict)
-    -[Test run](#test-run)
+    -[Prepare predict data](#prepare-predict-data)
+    -[Run predict](#run-predict)
 - [Training](#training)
     -[Prepare training data set](#prepare-training-data-set)
     -[Train a model](#train-a-model)
 
 ## Install
+
 ### install tensorflow environment
 We suggest you create a virtual environment to install DeepSignal.
 ```
@@ -32,12 +35,21 @@ or install tensorflow with CPU-version:
 ```
 conda install tensorflow==1.8.0
 ```
-### download the source code of DeepSignal
+### Install from `pip`
+### Install from Github
 You can download the source code from github:
 ```
 git clone https://github.com/bioinfomaticsCSU/deepsignal.git
 cd deepsignal
 ```
+## Predict
+### Prepare predict data
+### Run predict
+
+## Training
+### Prepare training data set
+### Train a model
+
 
 
 
