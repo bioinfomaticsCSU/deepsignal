@@ -11,7 +11,7 @@
 import os
 
 model_path = "/home/huangneng/master_deepsignal/deepsignal/models/hx1_cgi"
-result_path = "/home/huangneng/master_deepsignal/deepsignal/last_v_results/cgi_single_1"
+result_path = "/home/huangneng/master_deepsignal/deepsignal/last_v_results/cgi_mixture_1"
 test_dir = "/home/huangneng/data/human_hx1.norm.mad/test.bn21.sn440.cgi.5xs/BJXWZ.1.C789101112D1E13"
 model_name = '15'
 
