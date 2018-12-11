@@ -18,7 +18,7 @@ Built with **Tensorflow 1.8** and python 3.
 
 ## Install
 
-### install tensorflow environment
+### Install tensorflow
 We suggest you create a virtual environment to install DeepSignal.
 ```
 conda create -n deepsignal python=3.6
