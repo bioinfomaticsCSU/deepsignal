@@ -17,7 +17,6 @@ Built with **Tensorflow 1.8** and python 3.
     - [Train a model](#train-a-model)
 
 ## Install
-
 ### Install tensorflow
 We suggest you create a virtual environment to install DeepSignal.
 ```
@@ -35,7 +34,8 @@ or install tensorflow with CPU-version:
 ```
 conda install tensorflow==1.8.0
 ```
-### Install from `pip`
+### Install using `pip`
+We haven't finish the python package yet.
 ### Install from Github
 You can download the source code from github:
 ```
@@ -49,7 +49,3 @@ cd deepsignal
 ## Training
 ### Prepare training data set
 ### Train a model
-
-
-
-
