@@ -1,7 +1,7 @@
 # DeepSignal
 ## DeepSignal:A software to detect DNA methylation state from Oxford Nanopore sequencing reads.
 Using a deep learning BiLSTM+Inception structure to detecte DNA modification state with nanopore sequencing data.
-Built with **Tensorflow 1.8** and python 3.
+Built with **Tensorflow 1.8** and Python 3.
 
 ## Contents
 
@@ -19,7 +19,6 @@ Built with **Tensorflow 1.8** and python 3.
 
 ## Install
 ### Install Dependencies
-We suggest you create a virtual environment to install DeepSignal and its dependencies.
 #### Dependencies
    - [Python 3.*](https://www.python.org/)
    - Python packages:\
@@ -29,11 +28,13 @@ We suggest you create a virtual environment to install DeepSignal and its depend
        [sklearn](https://scikit-learn.org/stable/)\
        [tensorflow v1.8.0](https://www.tensorflow.org/)
 
+We suggest you create a virtual environment to install DeepSignal and its dependencies.
 #### Install using conda
+create a virtual environment using conda:
 ```bash
 conda create -n deepsignal python=3.6
 ```
-then activate virtual environment:
+activate virtual environment:
 ```bash
 source activate deepsignal
 ```
@@ -45,7 +46,7 @@ conda install statsmodels
 conda install -c anaconda scikit-learn
 conda install tensorflow_gpu==1.8.0
 ```
-or install tensorflow with CPU-version:
+or install the CPU-version of tensorflow:
 ```bash
 conda install tensorflow==1.8.0
 ```
@@ -100,7 +101,7 @@ python train.py -i Train_data_file -v Validate_data_file -o Output_model_file -g
 The models we trained and the example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/).
 
 * The model is CpG_model trained using HX1 R9.4 1D reads.
-* The example data is ~4000 reads of yeast R9.4 1D reads, along with a genome reference.
+* The example data is ~4000 yeast R9.4 1D reads each with called events(basecalled by Albacore), along with a genome reference.
 
 After downloading, the script *pipeline_demo.sh* can be used test the data:
 ```bash
