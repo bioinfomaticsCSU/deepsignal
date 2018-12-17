@@ -6,7 +6,7 @@ Built with **Tensorflow 1.8** and python 3.
 ## Contents
 
 - [Install](#install)
-    - [Install Dependencies](#Instal-Dependencies)
+    - [Install Dependencies](#Install-Dependencies)
     - [Install DeepSignal from Github](#Install-DeepSignal-from-Github)
 - [Extract features](#Extract-features)
 - [Predict](#predict)
@@ -40,8 +40,8 @@ source activate deepsignal
 install the dependencies:
 ```bash
 conda install h5py
-conda install statsmodels
 conda install -c bioconda ont-tombo
+conda install statsmodels
 conda install -c anaconda scikit-learn
 conda install tensorflow_gpu==1.8.0
 ```
@@ -53,9 +53,12 @@ A virtual environment can also be created using [*virtualenv*](https://github.co
 
 #### Install using `pip`
 ```bash
+# in the environment of python3
 pip install numpy
 pip install ont-tombo[full]
-pip install tensorflow
+pip install statsmodels
+pip install sklearn
+pip install 'tensorflow==1.8.0'
 ```
 
 ### Install DeepSignal from Github
@@ -103,7 +106,6 @@ After downloading, the script *pipeline_demo.sh* can be used test the data:
 ```bash
 chmod +x /path/to/pipeline_demo.sh
 /path/to/pipeline_demo.sh /path/to/fast5_folder /path/to/genome_ref.fa /path/to/model_folder /path/to/output_result
-
 ```
 
 

@@ -32,7 +32,7 @@ python "${BASEDIR}/generate_testing_data.py" -i $signal_feature_reformat_file -o
 python "${BASEDIR}/predict.py" -i $predict_input_dir -o $model_dir -n 6 -r $predict_output_file -x 17 -y 360 -z 60
 
 
-rm -r tombo_sl_dir
+rm -r $tombo_sl_dir
 rm $signal_feature_file
 rm $signal_feature_reformat_file
 rm -r $predict_input_dir
