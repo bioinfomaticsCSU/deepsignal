@@ -8,6 +8,7 @@ Built with **Tensorflow 1.8** and python 3.
 - [Install](#install)
     - [Install Dependencies](#instal-Dependencies)
     - [Install DeepSignal from Github](#Install-DeepSignal-from-Github)
+- [Extract features](#Extract-features)
 - [Predict](#predict)
     - [Prepare predict data](#prepare-predict-data)
     - [Run predict](#run-predict)
@@ -57,6 +58,10 @@ You can download the source code from github:
 git clone https://github.com/bioinfomaticsCSU/deepsignal.git
 cd deepsignal
 ```
+
+## Extract features
+
+
 ## Predict
 ### Prepare predict data
 You can run the file named `generate_testing_data.py` to generate the data to be detected.
@@ -69,7 +74,7 @@ After preparing the predict data, you can run the file named `predict.py` to get
 python predict.py -i Predict_data_file -o Parameter_model_folder -n model_index -r Output_file -x Kmer_size -y Signal_length -z Max_read_name_length
 ```
 
-## Training
+## Train
 If you have the labeled methylated and non-methylated data, you can train a model to achieve better predict performance on this species
 ### Prepare training data set
 You can run the file named `generate_training_data.py` to generate the training dataset and validate dataset.
@@ -83,7 +88,7 @@ python train.py -i Train_data_file -v Validate_data_file -o Output_model_file -g
 ```
 
 ## Example
-
+The models we trained and the example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/).
 
 
 
