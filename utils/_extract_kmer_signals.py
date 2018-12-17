@@ -9,7 +9,6 @@ import numpy as np
 from statsmodels import robust
 
 from _ref_reader import DNAReference
-from _utils import complement_seq
 from _utils import get_refloc_of_methysite_in_motif
 from _utils import max_num_bases
 
@@ -35,8 +34,12 @@ def get_alignment_attrs_of_each_strand(strand_path, h5obj):
     else:
         strand = 'c'
     if sys.version_info[0] >= 3:
-        alignstrand = str(alignment_attrs['mapped_strand'], 'utf-8')
-        chrom = str(alignment_attrs['mapped_chrom'], 'utf-8')
+        try:
+            alignstrand = str(alignment_attrs['mapped_strand'], 'utf-8')
+            chrom = str(alignment_attrs['mapped_chrom'], 'utf-8')
+        except TypeError:
+            alignstrand = str(alignment_attrs['mapped_strand'])
+            chrom = str(alignment_attrs['mapped_chrom'])
     else:
         alignstrand = str(alignment_attrs['mapped_strand'])
         chrom = str(alignment_attrs['mapped_chrom'])

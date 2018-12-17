@@ -80,6 +80,28 @@ def run(argv):
                 count += 1
             dircount += 1
             print("{} dir {} done..".format(dircount, it))
+        else:
+            out_signal_path = argv.output_dir
+            out_raw_path = argv.output_dir
+            f5file = argv.reads_dir + '/' + it
+            if not f5file.endswith('.fast5'):
+                continue
+            try:
+                raw, evt = get_label_raw(f5file, argv.corrected_group, argv.basecall_subgroup)
+            except:
+                error += 1
+                continue
+            out_path_s = out_signal_path + '/' + os.path.splitext(os.path.basename(f5file))[0] + '.label'
+            out_path_r = out_raw_path + '/' + os.path.splitext(os.path.basename(f5file))[0] + '.signal'
+            fs = open(out_path_s, 'w')
+            for v in evt:
+                fs.write(str(v[0]) + ' ' + str(v[0] + v[1]) + ' ' + str(v[2]) + '\n')
+            fs.close()
+            fr = open(out_path_r, 'w')
+            for v in raw:
+                fr.write(str(int(v)) + ' ')
+            fr.close()
+            count += 1
     print('success file number: ', count)
     print('defeat file number: ', error)
 

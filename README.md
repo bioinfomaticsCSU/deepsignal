@@ -6,7 +6,7 @@ Built with **Tensorflow 1.8** and python 3.
 ## Contents
 
 - [Install](#install)
-    - [Install Dependencies](#instal-Dependencies)
+    - [Install Dependencies](#Instal-Dependencies)
     - [Install DeepSignal from Github](#Install-DeepSignal-from-Github)
 - [Extract features](#Extract-features)
 - [Predict](#predict)
@@ -21,10 +21,13 @@ Built with **Tensorflow 1.8** and python 3.
 ### Install Dependencies
 We suggest you create a virtual environment to install DeepSignal and its dependencies.
 #### Dependencies
-   - Python 3.*
+   - [Python 3.*](https://www.python.org/)
    - Python packages:\
-        [tombo](https://github.com/nanoporetech/tombo)\
-        tensorflow
+       [h5py](https://github.com/h5py/h5py)\
+       [tombo](https://github.com/nanoporetech/tombo)\
+       [statsmodels](https://github.com/statsmodels/statsmodels/)\
+       [sklearn](https://scikit-learn.org/stable/)\
+       [tensorflow v1.8.0](https://www.tensorflow.org/)
 
 #### Install using conda
 ```bash
@@ -36,7 +39,10 @@ source activate deepsignal
 ```
 install the dependencies:
 ```bash
+conda install h5py
+conda install statsmodels
 conda install -c bioconda ont-tombo
+conda install -c anaconda scikit-learn
 conda install tensorflow_gpu==1.8.0
 ```
 or install tensorflow with CPU-version:
@@ -60,7 +66,7 @@ cd deepsignal
 ```
 
 ## Extract features
-
+After basecalling, the signal features can be extracted. Please refer to [Example](#Example) for specific pipelines.
 
 ## Predict
 ### Prepare predict data
@@ -90,5 +96,14 @@ python train.py -i Train_data_file -v Validate_data_file -o Output_model_file -g
 ## Example
 The models we trained and the example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/).
 
+* The model is CpG_model trained using HX1 R9.4 1D reads.
+* The example data is ~4000 reads of yeast R9.4 1D reads, along with a genome reference.
+
+After downloading, the script *pipeline_demo.sh* can be used test the data:
+```bash
+chmod +x /path/to/pipeline_demo.sh
+/path/to/pipeline_demo.sh /path/to/fast5_folder /path/to/genome_ref.fa /path/to/model_folder /path/to/output_result
+
+```
 
 

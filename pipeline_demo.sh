@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 BASEDIR=$(dirname "$0")
-fast5dir=$1
+fast5dir=$(echo ${1%/})
 ref_fp=$2
 model_dir=$3
 predict_output_file=$4
 
 # extract_features ==========
 run_tombo_resquiggle_py="${BASEDIR}/utils/_run_tombo_resquiggle.py"
-python $run_tombo_resquiggle_py --fast5_folder $fast5dir --reference_fp $ref_fp --basecall_group Basecall_1D_000 --processes 4
+python $run_tombo_resquiggle_py --fast5_folder $fast5dir --reference_fp $ref_fp --basecall_group Basecall_1D_000 --processes 8
 
 export_tombo_resquiggle_py="${BASEDIR}/utils/_export_tombo_resquiggle.py"
 tombo_sl_dir="${fast5dir}.tombo"
@@ -19,7 +19,7 @@ signal_feature_file="${fast5dir}.CpG.signal_features.21bases.tsv"
 python $extract_kmer_signal_py --fast5_dir $fast5dir --sl_dir $tombo_sl_dir --reference_path $ref_fp --write_path $signal_feature_file --methyed_label 0 --num_bases 10 --corrected_group RawGenomeCorrected_001 --basecall_subgroup BaseCalled_template --motifs CG --methy_loc_in_motif 0
 
 reformat_sample_features_py="${BASEDIR}/utils/_reformat_sample_features.py"
-python $reformat_sample_features_py --sf_filepath $signal_feature_file --header yes --bases_num 17 --raw_signals_num 360 &
+python $reformat_sample_features_py --sf_filepath $signal_feature_file --header yes --bases_num 17 --raw_signals_num 360
 
 
 

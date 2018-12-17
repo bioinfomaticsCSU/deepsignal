@@ -34,7 +34,7 @@ def tombo_call_in_subdirs(fast5_folder, ref_fa, basecall_group='Basecall_1D_000'
                                  subdir, 'log'])
             print('running tombo command===========')
             fast5_subdir_folder = '/'.join([f5_abs_path, subdir])
-            tombo_call = "bash " + abs_dir + "/test_run_tombo.sh " \
+            tombo_call = "bash " + abs_dir + "/_run_tombo_resquiggle.sh " \
                          "{f5_folder} {ref_fa} {basecall_group} {logfile} {nproc}".format(f5_folder=fast5_subdir_folder,
                                                                                           ref_fa=ref_fa,
                                                                                           basecall_group=basecall_group,
@@ -45,11 +45,12 @@ def tombo_call_in_subdirs(fast5_folder, ref_fa, basecall_group='Basecall_1D_000'
     log_file = '.'.join([cwd + '/tombo_logs/tombo',
                         str(fast5_folder).strip('./').replace('/', '.'),
                         'log'])
-    tombo_call = "bash " + abs_dir + "/test_run_tombo.sh " \
+    tombo_call = "bash " + abs_dir + "/_run_tombo_resquiggle.sh " \
                  "{f5_folder} {ref_fa} {basecall_group} {logfile} {nproc}".format(f5_folder=f5_abs_path,
                                                                                   ref_fa=ref_fa,
                                                                                   basecall_group=basecall_group,
                                                                                   logfile=log_file, nproc=processes)
+    print(tombo_call)
     tombo_call_process = Popen(shlex.split(tombo_call), stdout=PIPE, stderr=PIPE)
     out, error = tombo_call_process.communicate()
     os.system(' '.join(['rm', '-r', cwd + '/tombo_logs']))

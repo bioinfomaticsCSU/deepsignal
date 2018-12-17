@@ -13,10 +13,6 @@ from _utils import max_num_bases
 from _utils import str2bool
 from _ref_reader import get_contig2len
 
-normalize_ways = ['ZScore', ]
-normalize_way = 'ZScore'
-try_version = 'try3'
-
 MAX_BASE_NUM = max_num_bases()
 MAX_LEGAL_SIGNAL_NUM = 800  # for now 800 only for baseseq with len of 17
 MAX_LEGAL_SIGNAL_NUM_ONE_BASE = 40
@@ -230,7 +226,6 @@ def main():
         midfix += '.hq'
     if ismoid:
         midfix += '.moID'
-    midfix += '.' + try_version
     fname = _replace_baseinfo(fname, bases_num)
     w_fp = fname + midfix + fext
 
