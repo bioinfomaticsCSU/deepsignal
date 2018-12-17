@@ -1,42 +1,57 @@
 # DeepSignal
-## DeepSignal:A software to detect DNA modifications from signal-level Oxford Nanopore sequencing data.
-Using a deep learning BiLSTM+Inception structure to establish DNA modifications with nanopore sequencing data.
+## DeepSignal:A software to detect DNA methylation state from Oxford Nanopore sequencing reads.
+Using a deep learning BiLSTM+Inception structure to detecte DNA modification state with nanopore sequencing data.
 Built with **Tensorflow 1.8** and python 3.
 
 ## Contents
 
 - [Install](#install)
-    - [Install tensorflow](#instal-tensorflow)
-    - [Install using `pip`](#install-using-pip)
-    - [Install from Github](#install-from-github)
+    - [Install Dependencies](#instal-Dependencies)
+    - [Install DeepSignal from Github](#Install-DeepSignal-from-Github)
 - [Predict](#predict)
     - [Prepare predict data](#prepare-predict-data)
     - [Run predict](#run-predict)
 - [Training](#training)
     - [Prepare training data set](#prepare-training-data-set)
     - [Train a model](#train-a-model)
+- [Example](#Example)
 
 ## Install
-### Install tensorflow
-We suggest you create a virtual environment to install DeepSignal.
-```
+### Install Dependencies
+We suggest you create a virtual environment to install DeepSignal and its dependencies.
+#### Dependencies
+   - Python 3.*
+   - Python packages:\
+        [tombo](https://github.com/nanoporetech/tombo)\
+        tensorflow
+
+#### Install using conda
+```bash
 conda create -n deepsignal python=3.6
 ```
 then activate virtual environment:
-```
+```bash
 source activate deepsignal
 ```
-install tensorflow with GPU-version:
-```
+install the dependencies:
+```bash
+conda install -c bioconda ont-tombo
 conda install tensorflow_gpu==1.8.0
 ```
 or install tensorflow with CPU-version:
-```
+```bash
 conda install tensorflow==1.8.0
 ```
-### Install using `pip`
-We haven't finish the python package yet.
-### Install from Github
+A virtual environment can also be created using [*virtualenv*](https://github.com/pypa/virtualenv/).
+
+#### Install using `pip`
+```bash
+pip install numpy
+pip install ont-tombo[full]
+pip install tensorflow
+```
+
+### Install DeepSignal from Github
 You can download the source code from github:
 ```
 git clone https://github.com/bioinfomaticsCSU/deepsignal.git
@@ -66,3 +81,9 @@ You can run the file named `train.py` to train a new model.
 ```
 python train.py -i Train_data_file -v Validate_data_file -o Output_model_file -g Log_file -e Number_of_epoch -x Kmer_size -y Signal_length -z Max_read_name_length
 ```
+
+## Example
+
+
+
+
