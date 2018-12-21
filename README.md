@@ -4,7 +4,6 @@ Using a deep learning BiLSTM+Inception structure to detecte DNA modification sta
 Built with **Tensorflow 1.8** and Python 3.
 
 ## Contents
-
 - [Install](#install)
     - [Install Dependencies](#Install-Dependencies)
     - [Install DeepSignal from Github](#Install-DeepSignal-from-Github)
@@ -51,7 +50,6 @@ or install the CPU-version of tensorflow:
 conda install tensorflow==1.8.0
 ```
 A virtual environment can also be created using [*virtualenv*](https://github.com/pypa/virtualenv/).
-
 #### Install using `pip`
 ```bash
 # in the environment of python3
@@ -69,8 +67,10 @@ git clone https://github.com/bioinfomaticsCSU/deepsignal.git
 cd deepsignal
 ```
 
+
 ## Extract features
 After basecalling, the signal features can be extracted. Please refer to [Example](#Example) for specific pipelines.
+
 
 ## Predict
 ### Prepare predict data
@@ -78,11 +78,13 @@ You can run the file named `generate_testing_data.py` to generate the data to be
 ```
 python generate_testing_data.py -i Input_file -o Output_folder -m Max_read_name_length -b Kmer_size -s Signal_length
 ```
+
 ### Run predict
 After preparing the predict data, you can run the file named `predict.py` to get the modification prediction.
 ```
 python predict.py -i Predict_data_file -o Parameter_model_folder -n model_index -r Output_file -x Kmer_size -y Signal_length -z Max_read_name_length
 ```
+
 
 ## Train
 If you have the labeled methylated and non-methylated data, you can train a model to achieve better predict performance on this species
@@ -91,17 +93,19 @@ You can run the file named `generate_training_data.py` to generate the training 
 ```
 python generate_training_data.py -i Input_file -o Output_folder -m Max_read_name_length -b Kmer_size -s Signal_length
 ```
+
 ### Train a model
 You can run the file named `train.py` to train a new model.
 ```
 python train.py -i Train_data_file -v Validate_data_file -o Output_model_file -g Log_file -e Number_of_epoch -x Kmer_size -y Signal_length -z Max_read_name_length
 ```
 
+
 ## Example
 The models we trained and the example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/).
 
 * The model is CpG_model trained using HX1 R9.4 1D reads.
-* The example data is ~4000 yeast R9.4 1D reads each with called events(basecalled by Albacore), along with a genome reference.
+* The example data is ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
 
 After downloading, the script *pipeline_demo.sh* can be used test the data:
 ```bash
