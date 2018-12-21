@@ -1,7 +1,7 @@
 # DeepSignal
-## DeepSignal:A software to detect DNA methylation state from Oxford Nanopore sequencing reads.
-Using a deep learning BiLSTM+Inception structure to detecte DNA modification state with nanopore sequencing data.
-Built with **Tensorflow 1.8** and Python 3.
+## DeepSignal:A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads.
+DeepSignal constructs a BiLSTM+Inception structure to detecte DNA methylation state from Nanopore reads. It is
+built with **Tensorflow 1.8** and Python 3.
 
 ## Contents
 - [Install](#install)
@@ -21,10 +21,11 @@ Built with **Tensorflow 1.8** and Python 3.
 #### Dependencies
    - [Python 3.*](https://www.python.org/)
    - Python packages:\
+       [numpy](http://www.numpy.org/)\
        [h5py](https://github.com/h5py/h5py)\
        [tombo](https://github.com/nanoporetech/tombo)\
        [statsmodels](https://github.com/statsmodels/statsmodels/)\
-       [sklearn](https://scikit-learn.org/stable/)\
+       [scikit-learn](https://scikit-learn.org/stable/)\
        [tensorflow v1.8.0](https://www.tensorflow.org/)
 
 We suggest you create a virtual environment to install DeepSignal and its dependencies.
@@ -39,6 +40,7 @@ source activate deepsignal
 ```
 install the dependencies:
 ```bash
+conda install numpy
 conda install h5py
 conda install -c bioconda ont-tombo
 conda install statsmodels
@@ -54,6 +56,7 @@ A virtual environment can also be created using [*virtualenv*](https://github.co
 ```bash
 # in the environment of python3
 pip install numpy
+pip install h5py
 pip install ont-tombo[full]
 pip install statsmodels
 pip install sklearn
@@ -69,7 +72,7 @@ cd deepsignal
 
 
 ## Extract features
-After basecalling, the signal features can be extracted. Please refer to [Example](#Example) for specific pipelines.
+After basecalling, the signal features from fast5 files can be extracted. Please refer to [Example](#Example) for specific pipeline.
 
 
 ## Predict
