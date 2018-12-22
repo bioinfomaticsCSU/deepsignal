@@ -1,6 +1,6 @@
 # DeepSignal
-## DeepSignal:A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads.
-DeepSignal constructs a BiLSTM+Inception structure to detecte DNA methylation state from Nanopore reads. It is
+## DeepSignal: A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads.
+DeepSignal constructs a BiLSTM+Inception structure to detect DNA methylation state from Nanopore reads. It is
 built with **Tensorflow 1.8** and Python 3.
 
 ## Contents
@@ -110,7 +110,7 @@ The models we trained and the example data can be downloaded from [here](http://
 * The model is CpG_model trained using HX1 R9.4 1D reads.
 * The example data is ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
 
-After downloading, the script *pipeline_demo.sh* can be used test the data:
+After downloading, the script *pipeline_demo.sh* can be used to test the data:
 ```bash
 chmod +x /path/to/pipeline_demo.sh
 /path/to/pipeline_demo.sh /path/to/fast5_folder /path/to/genome_ref.fa /path/to/model_folder /path/to/output_result
