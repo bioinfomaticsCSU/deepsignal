@@ -14,7 +14,7 @@
 __author__ = 'huangneng'
 
 import numpy as np
-from deepsignal.layers import *
+from layers import *
 
 vocab_size = 1024
 embedding_size = 128

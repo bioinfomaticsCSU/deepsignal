@@ -17,8 +17,8 @@ import tensorflow as tf
 import argparse
 import os
 import numpy as np
-from deepsignal.model import Model
-from deepsignal.linedecode import decode_line
+from model import Model
+from linedecode import decode_line
 from sklearn import metrics
 
 
