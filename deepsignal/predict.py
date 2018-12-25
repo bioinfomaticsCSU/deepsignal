@@ -15,12 +15,10 @@ __author__ = 'huangneng'
 
 import tensorflow as tf
 import argparse
-import time
 import os
-import shutil
 import numpy as np
-from model import Model
-from linedecode import decode_line
+from deepsignal.model import Model
+from deepsignal.linedecode import decode_line
 from sklearn import metrics
 
 

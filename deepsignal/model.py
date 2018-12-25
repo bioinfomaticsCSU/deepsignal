@@ -13,9 +13,8 @@
 """
 __author__ = 'huangneng'
 
-import tensorflow as tf
 import numpy as np
-from layers import *
+from deepsignal.layers import *
 
 vocab_size = 1024
 embedding_size = 128
