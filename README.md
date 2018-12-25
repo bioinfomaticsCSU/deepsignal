@@ -105,9 +105,9 @@ python train.py -i Train_data_file -v Validate_data_file -o Output_model_file -g
 
 
 ## Example
-The models we trained and the example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/).
+The models we trained and the example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html).
 
-* The model is CpG_model trained using HX1 R9.4 1D reads.
+* The model is for CpG detection trained using human HX1 R9.4 1D reads.
 * The example data is ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
 
 After downloading, the script *pipeline_demo.sh* can be used to test the data:
