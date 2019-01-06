@@ -134,7 +134,9 @@ def _convert_motif_seq(ori_seq):
         outbases.append(iupac_alphabets[bbase])
 
     def recursive_permute(bases_list):
-        if len(bases_list) == 2:
+        if len(bases_list) == 1:
+            return bases_list[0]
+        elif len(bases_list) == 2:
             pseqs = []
             for fbase in bases_list[0]:
                 for sbase in bases_list[1]:
@@ -248,8 +250,8 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
 
                     cent_signals = _get_central_signals(k_signals, raw_signals_len)
 
-                    means_text = ','.join([str(x) for x in signal_means])
-                    stds_text = ','.join([str(x) for x in signal_stds])
+                    means_text = ','.join([str(x) for x in np.around(signal_means, decimals=6)])
+                    stds_text = ','.join([str(x) for x in np.around(signal_stds, decimals=6)])
                     signal_len_text = ','.join([str(x) for x in signal_lens])
                     cent_signals_text = ','.join([str(x) for x in cent_signals])
 
@@ -298,7 +300,6 @@ def _write_featurestr_to_file(write_fp, featurestr_q):
             for one_features_str in features_str:
                 wf.write(one_features_str + "\n")
             wf.flush()
-        wf.close()
 
 
 def extract_features(fast5_files, batch_size, write_fp, nproc,
@@ -341,7 +342,10 @@ def extract_features(fast5_files, batch_size, write_fp, nproc,
 
 def main():
     extraction_parser = argparse.ArgumentParser("extract features from corrected (tombo) fast5s for "
-                                                "training or testing using deepsignal")
+                                                "training or testing using deepsignal. "
+                                                "\nIt is suggested that running this module 1 flowcell a time, "
+                                                "or a group of flowcells a time, "
+                                                "if the whole data is extremely large.")
     extraction_parser.add_argument("--fast5_dir", "-i", action="store", type=str,
                                    required=True,
                                    help="the directory of fast5 files")
