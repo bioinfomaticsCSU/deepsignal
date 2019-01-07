@@ -2,10 +2,20 @@ import fnmatch
 import os
 
 basepairs = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N'}
+basepairs_rna = {'A': 'U', 'C': 'G', 'G': 'C', 'U': 'A', 'N': 'N'}
 
-iupac_alphabets = {'A': ['A', ], 'T': ['T', ], 'C': ['C', ], 'G': ['G', ],
-                   'U': ['U', ],
-                   'N': ['N', ], 'H': ['A', 'C', 'T'], }
+iupac_alphabets = {'A': ['A'], 'T': ['T'], 'C': ['C'], 'G': ['G'],
+                   'R': ['A', 'G'], 'M': ['A', 'C'], 'S': ['C', 'G'],
+                   'Y': ['C', 'T'], 'K': ['G', 'T'], 'W': ['A', 'T'],
+                   'B': ['C', 'G', 'T'], 'D': ['A', 'G', 'T'],
+                   'H': ['A', 'C', 'T'], 'V': ['A', 'C', 'G'],
+                   'N': ['A', 'C', 'G', 'T']}
+iupac_alphabets_rna = {'A': ['A'], 'C': ['C'], 'G': ['G'], 'U': ['U'],
+                       'R': ['A', 'G'], 'M': ['A', 'C'], 'S': ['C', 'G'],
+                       'Y': ['C', 'U'], 'K': ['G', 'U'], 'W': ['A', 'U'],
+                       'B': ['C', 'G', 'U'], 'D': ['A', 'G', 'U'],
+                       'H': ['A', 'C', 'U'], 'V': ['A', 'C', 'G'],
+                       'N': ['A', 'C', 'G', 'U']}
 
 # max_queue_size = 2000
 
@@ -15,13 +25,18 @@ def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
 
-def complement_seq(dnaseq):
-    rdnaseq = dnaseq[::-1]
+def complement_seq(base_seq, seq_type="DNA"):
+    rbase_seq = base_seq[::-1]
     comseq = ''
     try:
-        comseq = ''.join([basepairs[x] for x in rdnaseq])
+        if seq_type == "DNA":
+            comseq = ''.join([basepairs[x] for x in rbase_seq])
+        elif seq_type == "RNA":
+            comseq = ''.join([basepairs_rna[x] for x in rbase_seq])
+        else:
+            raise ValueError("the seq_type must be DNA or RNA")
     except Exception:
-        print('something wrong in the dna sequence.')
+        print('something wrong in the dna/rna sequence.')
     return comseq
 
 

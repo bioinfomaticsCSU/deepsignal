@@ -14,14 +14,16 @@ import multiprocessing as mp
 from statsmodels import robust
 
 from utils.process_utils import iupac_alphabets
+from utils.process_utils import iupac_alphabets_rna
 
 from utils.process_utils import str2bool
 from utils.process_utils import get_fast5s
 from utils.process_utils import get_refloc_of_methysite_in_motif
+
 from utils.ref_reader import get_contig2len
 
 reads_group = 'Raw/Reads'
-MAX_LEGAL_SIGNAL_NUM = 800  # 800 only for 17-mer
+# MAX_LEGAL_SIGNAL_NUM = 800  # 800 only for 17-mer
 
 
 def _get_label_raw(fast5_fn, correct_group, correct_subgroup):
@@ -128,10 +130,13 @@ def _normalize_signals(signals, normalize_method="mad"):
     return np.around(norm_signals, decimals=6)
 
 
-def _convert_motif_seq(ori_seq):
+def _convert_motif_seq(ori_seq, isdna=True):
     outbases = []
     for bbase in ori_seq:
-        outbases.append(iupac_alphabets[bbase])
+        if isdna:
+            outbases.append(iupac_alphabets[bbase])
+        else:
+            outbases.append(iupac_alphabets_rna[bbase])
 
     def recursive_permute(bases_list):
         if len(bases_list) == 1:
@@ -149,12 +154,12 @@ def _convert_motif_seq(ori_seq):
     return recursive_permute(outbases)
 
 
-def _get_motif_seqs(motifs):
-    ori_motif_seqs = motifs.split(',')
+def _get_motif_seqs(motifs, isdna=True):
+    ori_motif_seqs = motifs.strip().split(',')
 
     motif_seqs = []
     for ori_motif in ori_motif_seqs:
-        motif_seqs += _convert_motif_seq(ori_motif)
+        motif_seqs += _convert_motif_seq(ori_motif.strip().upper(), isdna)
     return motif_seqs
 
 
@@ -337,7 +342,7 @@ def extract_features(fast5_files, batch_size, write_fp, nproc,
 
     p_w.join()
 
-    print("extract_features cost %.1f seconds.." % (time.time() - start))
+    print("extract_features costs %.1f seconds.." % (time.time() - start))
 
 
 def main():
@@ -368,6 +373,10 @@ def main():
     extraction_parser.add_argument("--reference_path", action="store",
                                    type=str, required=True,
                                    help="the genome reference file to be used, normally is a .fa file")
+    extraction_parser.add_argument("--dna", action="store", type=str, required=False,
+                                   default='yes',
+                                   help='is the fast5 files from DNA sample. '
+                                        'default true, t, yes, 1')
     extraction_parser.add_argument("--write_path", '-o', action="store",
                                    type=str, required=True,
                                    help='file path to save the features')
@@ -383,9 +392,10 @@ def main():
                                    help="the number of signals to be used in deepsignal, default 360")
     extraction_parser.add_argument("--motifs", action="store", type=str,
                                    required=False, default='CG',
-                                   help='motif seq, default: CG. can be multi motifs splited by comma, '
+                                   help='motif seq, default: CG. can be multi motifs splited by comma '
+                                        '(no space allowed in the input str), '
                                         'or use IUPAC alphabet, '
-                                        'but the mod_loc must be '
+                                        'and the mod_loc of all motifs must be '
                                         'the same')
     extraction_parser.add_argument("--mod_loc", action="store", type=int, required=False, default=0,
                                    help='0-based location of the targeted base in the motif, default 0')
@@ -411,6 +421,7 @@ def main():
     normalize_method = extraction_args.normalize_method
 
     reference_path = extraction_args.reference_path
+    isdna = str2bool(extraction_args.dna)
     write_path = extraction_args.write_path
 
     kmer_len = extraction_args.kmer_len
@@ -425,9 +436,11 @@ def main():
     fast5_files = get_fast5s(fast5_dir, is_recursive)
     print("{} fast5 files in total".format(len(fast5_files)))
 
-    print("reading genome reference file..")
+    print("parse the motifs string..")
+    motif_seqs = _get_motif_seqs(motifs, isdna)
+
+    print("read genome reference file..")
     chrom2len = get_contig2len(reference_path)
-    motif_seqs = _get_motif_seqs(motifs)
 
     extract_features(fast5_files, batch_num, write_path, nproc,
                      corrected_group, basecall_subgroup, normalize_method,
