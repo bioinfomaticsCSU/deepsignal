@@ -23,6 +23,8 @@ from utils.process_utils import get_refloc_of_methysite_in_motif
 from utils.ref_reader import get_contig2len
 
 reads_group = 'Raw/Reads'
+queen_size_border = 2000
+time_wait = 5
 # MAX_LEGAL_SIGNAL_NUM = 800  # 800 only for 17-mer
 
 
@@ -130,10 +132,10 @@ def _normalize_signals(signals, normalize_method="mad"):
     return np.around(norm_signals, decimals=6)
 
 
-def _convert_motif_seq(ori_seq, isdna=True):
+def _convert_motif_seq(ori_seq, is_dna=True):
     outbases = []
     for bbase in ori_seq:
-        if isdna:
+        if is_dna:
             outbases.append(iupac_alphabets[bbase])
         else:
             outbases.append(iupac_alphabets_rna[bbase])
@@ -154,12 +156,12 @@ def _convert_motif_seq(ori_seq, isdna=True):
     return recursive_permute(outbases)
 
 
-def _get_motif_seqs(motifs, isdna=True):
+def _get_motif_seqs(motifs, is_dna=True):
     ori_motif_seqs = motifs.strip().split(',')
 
     motif_seqs = []
     for ori_motif in ori_motif_seqs:
-        motif_seqs += _convert_motif_seq(ori_motif.strip().upper(), isdna)
+        motif_seqs += _convert_motif_seq(ori_motif.strip().upper(), is_dna)
     return motif_seqs
 
 
@@ -268,7 +270,7 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
         except Exception:
             error += 1
             continue
-    print("extracted success {} of {}".format(len(fast5s) - error, len(fast5s)))
+    # print("extracted success {} of {}".format(len(fast5s) - error, len(fast5s)))
     # print("features_str len {}".format(len(features_str)))
     return features_str, error
 
@@ -279,7 +281,7 @@ def _fill_files_queue(fast5s_q, fast5_files, batch_size):
     return
 
 
-def _get_a_batch_features_str(fast5s_q, featurestr_q,
+def _get_a_batch_features_str(fast5s_q, featurestr_q, errornum_q,
                               corrected_group, basecall_subgroup, normalize_method,
                               motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len, methy_label):
     while not fast5s_q.empty():
@@ -291,14 +293,17 @@ def _get_a_batch_features_str(fast5s_q, featurestr_q,
                                                     normalize_method, motif_seqs, methyloc,
                                                     chrom2len, kmer_len, raw_signals_len, methy_label)
         featurestr_q.put(features_str)
+        if featurestr_q.qsize() >= queen_size_border:
+            time.sleep(time_wait)
+        errornum_q.put(error_num)
 
 
 def _write_featurestr_to_file(write_fp, featurestr_q):
     with open(write_fp, 'w') as wf:
         while True:
-            # during test, it's ok without the sleep(10)
+            # during test, it's ok without the sleep(time_wait)
             if featurestr_q.empty():
-                time.sleep(10)
+                time.sleep(time_wait)
             features_str = featurestr_q.get()
             if features_str == "kill":
                 break
@@ -316,13 +321,15 @@ def extract_features(fast5_files, batch_size, write_fp, nproc,
     _fill_files_queue(fast5s_q, fast5_files, batch_size)
 
     featurestr_q = mp.Queue()
+    errornum_q = mp.Queue()
 
     featurestr_procs = []
     if nproc > 1:
         nproc -= 1
     for _ in range(nproc):
-        p = mp.Process(target=_get_a_batch_features_str, args=(fast5s_q, featurestr_q, corrected_group,
-                                                               basecall_subgroup, normalize_method, motif_seqs,
+        p = mp.Process(target=_get_a_batch_features_str, args=(fast5s_q, featurestr_q, errornum_q,
+                                                               corrected_group, basecall_subgroup,
+                                                               normalize_method, motif_seqs,
                                                                methyloc, chrom2len, kmer_len, raw_signals_len,
                                                                methy_label))
         p.daemon = True
@@ -342,7 +349,11 @@ def extract_features(fast5_files, batch_size, write_fp, nproc,
 
     p_w.join()
 
-    print("extract_features costs %.1f seconds.." % (time.time() - start))
+    errornum_sum = 0
+    while not errornum_q.empty():
+        errornum_sum += errornum_q.get()
+    print("%d of %d failed, extract_features costs %.1f seconds.." % (errornum_sum, len(fast5_files),
+                                                                      time.time() - start))
 
 
 def main():
@@ -373,17 +384,19 @@ def main():
     extraction_parser.add_argument("--reference_path", action="store",
                                    type=str, required=True,
                                    help="the genome reference file to be used, normally is a .fa file")
-    extraction_parser.add_argument("--dna", action="store", type=str, required=False,
+    extraction_parser.add_argument("--is_dna", action="store", type=str, required=False,
                                    default='yes',
-                                   help='is the fast5 files from DNA sample. '
-                                        'default true, t, yes, 1')
+                                   help='whether the fast5 files from DNA sample or not. '
+                                        'default true, t, yes, 1. '
+                                        'setting this option to no/false/0 means '
+                                        'the fast5 files are from RNA sample.')
     extraction_parser.add_argument("--write_path", '-o', action="store",
                                    type=str, required=True,
                                    help='file path to save the features')
     extraction_parser.add_argument("--methy_label", action="store", type=str,
                                    choices=["1", '0'], required=False, default="1",
-                                   help="the label of the interested modified bases, 0 or 1, "
-                                        "default 1")
+                                   help="the label of the interested modified bases, this is for training."
+                                        " 0 or 1, default 1")
     extraction_parser.add_argument("--kmer_len", action="store",
                                    type=int, required=False, default=17,
                                    help="len of kmer. default 17")
@@ -406,10 +419,10 @@ def main():
 
     extraction_parser.add_argument("--nproc", "-p", action="store", type=int, default=1,
                                    required=False,
-                                   help="number of processes to be used")
+                                   help="number of processes to be used, default 1")
     extraction_parser.add_argument("--batch_num", "-b", action="store", type=int, default=100,
                                    required=False,
-                                   help="number of files to be processed by one process")
+                                   help="number of files to be processed by one process, default 100")
 
     extraction_args = extraction_parser.parse_args()
 
@@ -421,7 +434,7 @@ def main():
     normalize_method = extraction_args.normalize_method
 
     reference_path = extraction_args.reference_path
-    isdna = str2bool(extraction_args.dna)
+    is_dna = str2bool(extraction_args.is_dna)
     write_path = extraction_args.write_path
 
     kmer_len = extraction_args.kmer_len
@@ -437,7 +450,7 @@ def main():
     print("{} fast5 files in total".format(len(fast5_files)))
 
     print("parse the motifs string..")
-    motif_seqs = _get_motif_seqs(motifs, isdna)
+    motif_seqs = _get_motif_seqs(motifs, is_dna)
 
     print("read genome reference file..")
     chrom2len = get_contig2len(reference_path)

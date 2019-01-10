@@ -4,6 +4,11 @@ import os
 basepairs = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N'}
 basepairs_rna = {'A': 'U', 'C': 'G', 'G': 'C', 'U': 'A', 'N': 'N'}
 
+base2code_dna = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'N': 4}
+code2base_dna = {0: 'A', 1: 'C', 2: 'G', 3: 'T', 4: 'N'}
+base2code_rna = {'A': 0, 'C': 1, 'G': 2, 'U': 3, 'N': 4}
+code2base_rna = {0: 'A', 1: 'C', 2: 'G', 3: 'U', 4: 'N'}
+
 iupac_alphabets = {'A': ['A'], 'T': ['T'], 'C': ['C'], 'G': ['G'],
                    'R': ['A', 'G'], 'M': ['A', 'C'], 'S': ['C', 'G'],
                    'Y': ['C', 'T'], 'K': ['G', 'T'], 'W': ['A', 'T'],
