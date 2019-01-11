@@ -13,12 +13,10 @@ import numpy as np
 import multiprocessing as mp
 from statsmodels import robust
 
-from utils.process_utils import iupac_alphabets
-from utils.process_utils import iupac_alphabets_rna
-
 from utils.process_utils import str2bool
 from utils.process_utils import get_fast5s
 from utils.process_utils import get_refloc_of_methysite_in_motif
+from utils.process_utils import get_motif_seqs
 
 from utils.ref_reader import get_contig2len
 
@@ -38,7 +36,8 @@ def _get_label_raw(fast5_fn, correct_group, correct_subgroup):
     try:
         raw_dat = list(fast5_data[reads_group].values())[0]
         # raw_attrs = raw_dat.attrs
-        raw_dat = raw_dat['Signal'].value
+        # raw_dat = raw_dat['Signal'].value
+        raw_dat = raw_dat['Signal'][()]
     except Exception:
         raise RuntimeError('Raw data is not stored in Raw/Reads/Read_[read#] so '
                            'new segments cannot be identified.')
@@ -132,39 +131,6 @@ def _normalize_signals(signals, normalize_method="mad"):
     return np.around(norm_signals, decimals=6)
 
 
-def _convert_motif_seq(ori_seq, is_dna=True):
-    outbases = []
-    for bbase in ori_seq:
-        if is_dna:
-            outbases.append(iupac_alphabets[bbase])
-        else:
-            outbases.append(iupac_alphabets_rna[bbase])
-
-    def recursive_permute(bases_list):
-        if len(bases_list) == 1:
-            return bases_list[0]
-        elif len(bases_list) == 2:
-            pseqs = []
-            for fbase in bases_list[0]:
-                for sbase in bases_list[1]:
-                    pseqs.append(fbase + sbase)
-            return pseqs
-        else:
-            pseqs = recursive_permute(bases_list[1:])
-            pseq_list = [bases_list[0], pseqs]
-            return recursive_permute(pseq_list)
-    return recursive_permute(outbases)
-
-
-def _get_motif_seqs(motifs, is_dna=True):
-    ori_motif_seqs = motifs.strip().split(',')
-
-    motif_seqs = []
-    for ori_motif in ori_motif_seqs:
-        motif_seqs += _convert_motif_seq(ori_motif.strip().upper(), is_dna)
-    return motif_seqs
-
-
 def _get_central_signals(signals_list, rawsignal_num=360):
     signal_lens = [len(x) for x in signals_list]
 
@@ -207,7 +173,7 @@ def _get_central_signals(signals_list, rawsignal_num=360):
 def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_method,
                       motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
                       methy_label):
-    features_str = []
+    features_list = []
     error = 0
     for fast5_fp in fast5s:
         try:
@@ -227,26 +193,26 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
             else:
                 chrom_start_in_alignstrand = chromlen - (chrom_start + len(genomeseq))
 
-            cpg_site_locs = []
+            tsite_locs = []
             for mseq in motif_seqs:
-                cpg_site_locs += get_refloc_of_methysite_in_motif(genomeseq, mseq, methyloc)
+                tsite_locs += get_refloc_of_methysite_in_motif(genomeseq, mseq, methyloc)
 
             if kmer_len % 2 == 0:
                 raise ValueError("kmer_len must be odd")
             num_bases = (kmer_len - 1) // 2
 
-            for cpgloc_in_read in cpg_site_locs:
-                if num_bases <= cpgloc_in_read < len(genomeseq) - num_bases:
-                    cpgloc_in_ref = cpgloc_in_read + chrom_start_in_alignstrand
+            for loc_in_read in tsite_locs:
+                if num_bases <= loc_in_read < len(genomeseq) - num_bases:
+                    loc_in_ref = loc_in_read + chrom_start_in_alignstrand
 
                     # cpgid = readname + chrom + alignstrand + str(cpgloc_in_ref) + strand
                     if alignstrand == '-':
-                        pos = chromlen - 1 - cpgloc_in_ref
+                        pos = chromlen - 1 - loc_in_ref
                     else:
-                        pos = cpgloc_in_ref
+                        pos = loc_in_ref
 
-                    k_mer = genomeseq[(cpgloc_in_read - num_bases):(cpgloc_in_read + num_bases + 1)]
-                    k_signals = signal_list[(cpgloc_in_read - num_bases):(cpgloc_in_read + num_bases + 1)]
+                    k_mer = genomeseq[(loc_in_read - num_bases):(loc_in_read + num_bases + 1)]
+                    k_signals = signal_list[(loc_in_read - num_bases):(loc_in_read + num_bases + 1)]
 
                     signal_lens = [len(x) for x in k_signals]
                     # if sum(signal_lens) > MAX_LEGAL_SIGNAL_NUM:
@@ -257,22 +223,32 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
 
                     cent_signals = _get_central_signals(k_signals, raw_signals_len)
 
-                    means_text = ','.join([str(x) for x in np.around(signal_means, decimals=6)])
-                    stds_text = ','.join([str(x) for x in np.around(signal_stds, decimals=6)])
-                    signal_len_text = ','.join([str(x) for x in signal_lens])
-                    cent_signals_text = ','.join([str(x) for x in cent_signals])
-
-                    features_str.append("\t".join([chrom, str(pos), alignstrand, str(cpgloc_in_ref),
-                                                   readname, strand, k_mer, means_text,
-                                                   stds_text, signal_len_text, cent_signals_text,
-                                                   str(methy_label)]))
-
+                    features_list.append((chrom, pos, alignstrand, loc_in_ref, readname, strand,
+                                          k_mer, signal_means, signal_stds, signal_lens,
+                                          cent_signals, methy_label))
         except Exception:
             error += 1
             continue
     # print("extracted success {} of {}".format(len(fast5s) - error, len(fast5s)))
     # print("features_str len {}".format(len(features_str)))
-    return features_str, error
+    return features_list, error
+
+
+def _features_to_str(features):
+    """
+
+    :param features: a tuple
+    :return:
+    """
+    chrom, pos, alignstrand, loc_in_ref, readname, strand, k_mer, signal_means, signal_stds, \
+        signal_lens, cent_signals, methy_label = features
+    means_text = ','.join([str(x) for x in np.around(signal_means, decimals=6)])
+    stds_text = ','.join([str(x) for x in np.around(signal_stds, decimals=6)])
+    signal_len_text = ','.join([str(x) for x in signal_lens])
+    cent_signals_text = ','.join([str(x) for x in cent_signals])
+
+    return "\t".join([chrom, str(pos), alignstrand, str(loc_in_ref), readname, strand, k_mer, means_text,
+                      stds_text, signal_len_text, cent_signals_text, str(methy_label)])
 
 
 def _fill_files_queue(fast5s_q, fast5_files, batch_size):
@@ -281,17 +257,21 @@ def _fill_files_queue(fast5s_q, fast5_files, batch_size):
     return
 
 
-def _get_a_batch_features_str(fast5s_q, featurestr_q, errornum_q,
-                              corrected_group, basecall_subgroup, normalize_method,
-                              motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len, methy_label):
+def get_a_batch_features_str(fast5s_q, featurestr_q, errornum_q,
+                             corrected_group, basecall_subgroup, normalize_method,
+                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len, methy_label):
     while not fast5s_q.empty():
         try:
             fast5s = fast5s_q.get()
         except Exception:
             break
-        features_str, error_num = _extract_features(fast5s, corrected_group, basecall_subgroup,
-                                                    normalize_method, motif_seqs, methyloc,
-                                                    chrom2len, kmer_len, raw_signals_len, methy_label)
+        features_list, error_num = _extract_features(fast5s, corrected_group, basecall_subgroup,
+                                                     normalize_method, motif_seqs, methyloc,
+                                                     chrom2len, kmer_len, raw_signals_len, methy_label)
+        features_str = []
+        for features in features_list:
+            features_str.append(_features_to_str(features))
+
         featurestr_q.put(features_str)
         if featurestr_q.qsize() >= queen_size_border:
             time.sleep(time_wait)
@@ -304,6 +284,7 @@ def _write_featurestr_to_file(write_fp, featurestr_q):
             # during test, it's ok without the sleep(time_wait)
             if featurestr_q.empty():
                 time.sleep(time_wait)
+                continue
             features_str = featurestr_q.get()
             if features_str == "kill":
                 break
@@ -312,13 +293,31 @@ def _write_featurestr_to_file(write_fp, featurestr_q):
             wf.flush()
 
 
-def extract_features(fast5_files, batch_size, write_fp, nproc,
-                     corrected_group, basecall_subgroup, normalize_method,
-                     motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len, methy_label):
-    start = time.time()
+def _extract_preprocess(fast5_dir, is_recursive, motifs, is_dna, reference_path, f5_batch_num):
+
+    fast5_files = get_fast5s(fast5_dir, is_recursive)
+    print("{} fast5 files in total".format(len(fast5_files)))
+
+    print("parse the motifs string..")
+    motif_seqs = get_motif_seqs(motifs, is_dna)
+
+    print("read genome reference file..")
+    chrom2len = get_contig2len(reference_path)
 
     fast5s_q = mp.Queue()
-    _fill_files_queue(fast5s_q, fast5_files, batch_size)
+    _fill_files_queue(fast5s_q, fast5_files, f5_batch_num)
+
+    return motif_seqs, chrom2len, fast5s_q, len(fast5_files)
+
+
+def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
+                     batch_size, write_fp, nproc,
+                     corrected_group, basecall_subgroup, normalize_method,
+                     motifs, methyloc, kmer_len, raw_signals_len, methy_label):
+    start = time.time()
+
+    motif_seqs, chrom2len, fast5s_q, len_fast5s = _extract_preprocess(fast5_dir, is_recursive, motifs,
+                                                                      is_dna, reference_path, batch_size)
 
     featurestr_q = mp.Queue()
     errornum_q = mp.Queue()
@@ -327,11 +326,11 @@ def extract_features(fast5_files, batch_size, write_fp, nproc,
     if nproc > 1:
         nproc -= 1
     for _ in range(nproc):
-        p = mp.Process(target=_get_a_batch_features_str, args=(fast5s_q, featurestr_q, errornum_q,
-                                                               corrected_group, basecall_subgroup,
-                                                               normalize_method, motif_seqs,
-                                                               methyloc, chrom2len, kmer_len, raw_signals_len,
-                                                               methy_label))
+        p = mp.Process(target=get_a_batch_features_str, args=(fast5s_q, featurestr_q, errornum_q,
+                                                              corrected_group, basecall_subgroup,
+                                                              normalize_method, motif_seqs,
+                                                              methyloc, chrom2len, kmer_len, raw_signals_len,
+                                                              methy_label))
         p.daemon = True
         p.start()
         featurestr_procs.append(p)
@@ -352,7 +351,7 @@ def extract_features(fast5_files, batch_size, write_fp, nproc,
     errornum_sum = 0
     while not errornum_q.empty():
         errornum_sum += errornum_q.get()
-    print("%d of %d failed, extract_features costs %.1f seconds.." % (errornum_sum, len(fast5_files),
+    print("%d of %d failed, extract_features costs %.1f seconds.." % (errornum_sum, len_fast5s,
                                                                       time.time() - start))
 
 
@@ -362,67 +361,72 @@ def main():
                                                 "\nIt is suggested that running this module 1 flowcell a time, "
                                                 "or a group of flowcells a time, "
                                                 "if the whole data is extremely large.")
-    extraction_parser.add_argument("--fast5_dir", "-i", action="store", type=str,
-                                   required=True,
-                                   help="the directory of fast5 files")
-    extraction_parser.add_argument("--corrected_group", action="store", type=str, required=False,
-                                   default='RawGenomeCorrected_000',
-                                   help='the corrected_group of fast5 files after '
-                                        'tombo re-squiggle. default RawGenomeCorrected_000')
-    extraction_parser.add_argument("--basecall_subgroup", action="store", type=str, required=False,
-                                   default='BaseCalled_template',
-                                   help='the corrected subgroup of fast5 files. default BaseCalled_template')
-    extraction_parser.add_argument("--recursively", "-r", action="store", type=str, required=False,
-                                   default='yes',
-                                   help='is to find fast5 files from fast5_dir recursively. '
-                                        'default true, t, yes, 1')
-    extraction_parser.add_argument("--normalize_method", action="store", type=str, choices=["mad", "zscore"],
-                                   default="mad", required=False,
-                                   help="the way for normalizing signals in read level. "
-                                        "mad or zscore, default mad")
+    ep_input = extraction_parser.add_argument_group("INPUT")
+    ep_input.add_argument("--fast5_dir", "-i", action="store", type=str,
+                          required=True,
+                          help="the directory of fast5 files")
+    ep_input.add_argument("--recursively", "-r", action="store", type=str, required=False,
+                          default='yes',
+                          help='is to find fast5 files from fast5_dir recursively. '
+                               'default true, t, yes, 1')
+    ep_input.add_argument("--corrected_group", action="store", type=str, required=False,
+                          default='RawGenomeCorrected_000',
+                          help='the corrected_group of fast5 files after '
+                               'tombo re-squiggle. default RawGenomeCorrected_000')
+    ep_input.add_argument("--basecall_subgroup", action="store", type=str, required=False,
+                          default='BaseCalled_template',
+                          help='the corrected subgroup of fast5 files. default BaseCalled_template')
+    ep_input.add_argument("--reference_path", action="store",
+                          type=str, required=True,
+                          help="the reference file to be used, normally is a .fa file")
+    ep_input.add_argument("--is_dna", action="store", type=str, required=False,
+                          default='yes',
+                          help='whether the fast5 files from DNA sample or not. '
+                               'default true, t, yes, 1. '
+                               'setting this option to no/false/0 means '
+                               'the fast5 files are from RNA sample.')
 
-    extraction_parser.add_argument("--reference_path", action="store",
-                                   type=str, required=True,
-                                   help="the genome reference file to be used, normally is a .fa file")
-    extraction_parser.add_argument("--is_dna", action="store", type=str, required=False,
-                                   default='yes',
-                                   help='whether the fast5 files from DNA sample or not. '
-                                        'default true, t, yes, 1. '
-                                        'setting this option to no/false/0 means '
-                                        'the fast5 files are from RNA sample.')
-    extraction_parser.add_argument("--write_path", '-o', action="store",
-                                   type=str, required=True,
-                                   help='file path to save the features')
-    extraction_parser.add_argument("--methy_label", action="store", type=str,
-                                   choices=["1", '0'], required=False, default="1",
-                                   help="the label of the interested modified bases, this is for training."
-                                        " 0 or 1, default 1")
-    extraction_parser.add_argument("--kmer_len", action="store",
-                                   type=int, required=False, default=17,
-                                   help="len of kmer. default 17")
-    extraction_parser.add_argument("--cent_signals_len", action="store",
-                                   type=int, required=False, default=360,
-                                   help="the number of signals to be used in deepsignal, default 360")
-    extraction_parser.add_argument("--motifs", action="store", type=str,
-                                   required=False, default='CG',
-                                   help='motif seq, default: CG. can be multi motifs splited by comma '
-                                        '(no space allowed in the input str), '
-                                        'or use IUPAC alphabet, '
-                                        'and the mod_loc of all motifs must be '
-                                        'the same')
-    extraction_parser.add_argument("--mod_loc", action="store", type=int, required=False, default=0,
-                                   help='0-based location of the targeted base in the motif, default 0')
-    # extraction_parser.add_argument("--region", action="store", type=str,
-    #                                required=False, default=None,
-    #                                help="region of interest, e.g.: chr1:0-10000, default None, "
-    #                                     "for the whole region")
+    ep_extraction = extraction_parser.add_argument_group("EXTRACTION")
+    ep_extraction.add_argument("--normalize_method", action="store", type=str, choices=["mad", "zscore"],
+                               default="mad", required=False,
+                               help="the way for normalizing signals in read level. "
+                                    "mad or zscore, default mad")
+    ep_extraction.add_argument("--methy_label", action="store", type=int,
+                               choices=[1, 0], required=False, default=1,
+                               help="the label of the interested modified bases, this is for training."
+                                    " 0 or 1, default 1")
+    ep_extraction.add_argument("--kmer_len", action="store",
+                               type=int, required=False, default=17,
+                               help="len of kmer. default 17")
+    ep_extraction.add_argument("--cent_signals_len", action="store",
+                               type=int, required=False, default=360,
+                               help="the number of signals to be used in deepsignal, default 360")
+    ep_extraction.add_argument("--motifs", action="store", type=str,
+                               required=False, default='CG',
+                               help='motif seq to be extracted, default: CG. '
+                                    'can be multi motifs splited by comma '
+                                    '(no space allowed in the input str), '
+                                    'or use IUPAC alphabet, '
+                                    'the mod_loc of all motifs must be '
+                                    'the same')
+    ep_extraction.add_argument("--mod_loc", action="store", type=int, required=False, default=0,
+                               help='0-based location of the targeted base in the motif, default 0')
+    # ep_extraction.add_argument("--region", action="store", type=str,
+    #                            required=False, default=None,
+    #                            help="region of interest, e.g.: chr1:0-10000, default None, "
+    #                                 "for the whole region")
+
+    ep_output = extraction_parser.add_argument_group("OUTPUT")
+    ep_output.add_argument("--write_path", "-o", action="store",
+                           type=str, required=True,
+                           help='file path to save the features')
 
     extraction_parser.add_argument("--nproc", "-p", action="store", type=int, default=1,
                                    required=False,
                                    help="number of processes to be used, default 1")
-    extraction_parser.add_argument("--batch_num", "-b", action="store", type=int, default=100,
+    extraction_parser.add_argument("--f5_batch_num", action="store", type=int, default=100,
                                    required=False,
-                                   help="number of files to be processed by one process, default 100")
+                                   help="number of files to be processed by each process one time, default 100")
 
     extraction_args = extraction_parser.parse_args()
 
@@ -444,20 +448,11 @@ def main():
     methy_label = extraction_args.methy_label
 
     nproc = extraction_args.nproc
-    batch_num = extraction_args.batch_num
+    batch_num = extraction_args.f5_batch_num
 
-    fast5_files = get_fast5s(fast5_dir, is_recursive)
-    print("{} fast5 files in total".format(len(fast5_files)))
-
-    print("parse the motifs string..")
-    motif_seqs = _get_motif_seqs(motifs, is_dna)
-
-    print("read genome reference file..")
-    chrom2len = get_contig2len(reference_path)
-
-    extract_features(fast5_files, batch_num, write_path, nproc,
-                     corrected_group, basecall_subgroup, normalize_method,
-                     motif_seqs, mod_loc, chrom2len, kmer_len, cent_signals_num, methy_label)
+    extract_features(fast5_dir, is_recursive, reference_path, is_dna,
+                     batch_num, write_path, nproc, corrected_group, basecall_subgroup,
+                     normalize_method, motifs, mod_loc, kmer_len, cent_signals_num, methy_label)
 
 
 if __name__ == '__main__':

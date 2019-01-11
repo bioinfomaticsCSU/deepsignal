@@ -77,5 +77,5 @@ setup(
     extras_require={
         'testing': ['pytest'],
       },
-    scripts=['scripts/deepsignal.py'],
+    scripts=['deepsignal/deepsignal.py'],
 )

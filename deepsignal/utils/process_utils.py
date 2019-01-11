@@ -62,6 +62,39 @@ def get_refloc_of_methysite_in_motif(seqstr, motif='CG', methyloc_in_motif=0):
     return sites
 
 
+def _convert_motif_seq(ori_seq, is_dna=True):
+    outbases = []
+    for bbase in ori_seq:
+        if is_dna:
+            outbases.append(iupac_alphabets[bbase])
+        else:
+            outbases.append(iupac_alphabets_rna[bbase])
+
+    def recursive_permute(bases_list):
+        if len(bases_list) == 1:
+            return bases_list[0]
+        elif len(bases_list) == 2:
+            pseqs = []
+            for fbase in bases_list[0]:
+                for sbase in bases_list[1]:
+                    pseqs.append(fbase + sbase)
+            return pseqs
+        else:
+            pseqs = recursive_permute(bases_list[1:])
+            pseq_list = [bases_list[0], pseqs]
+            return recursive_permute(pseq_list)
+    return recursive_permute(outbases)
+
+
+def get_motif_seqs(motifs, is_dna=True):
+    ori_motif_seqs = motifs.strip().split(',')
+
+    motif_seqs = []
+    for ori_motif in ori_motif_seqs:
+        motif_seqs += _convert_motif_seq(ori_motif.strip().upper(), is_dna)
+    return motif_seqs
+
+
 def get_fast5s(fast5_dir, is_recursive=True):
     fast5_dir = os.path.abspath(fast5_dir)
     fast5s = []
