@@ -45,11 +45,11 @@ conda install h5py
 conda install -c bioconda ont-tombo
 conda install statsmodels
 conda install -c anaconda scikit-learn
-conda install tensorflow_gpu==1.8.0
+conda install -c anaconda tensorflow-gpu==1.8.0
 ```
 or install the CPU-version of tensorflow:
 ```bash
-conda install tensorflow==1.8.0
+conda install -c anaconda tensorflow==1.8.0
 ```
 A virtual environment can also be created using [*virtualenv*](https://github.com/pypa/virtualenv/).
 #### Install using `pip`

@@ -272,10 +272,10 @@ def get_a_batch_features_str(fast5s_q, featurestr_q, errornum_q,
         for features in features_list:
             features_str.append(_features_to_str(features))
 
-        featurestr_q.put(features_str)
-        if featurestr_q.qsize() >= queen_size_border:
-            time.sleep(time_wait)
         errornum_q.put(error_num)
+        featurestr_q.put(features_str)
+        while featurestr_q.qsize() > queen_size_border:
+            time.sleep(time_wait)
 
 
 def _write_featurestr_to_file(write_fp, featurestr_q):
@@ -378,7 +378,7 @@ def main():
                           help='the corrected subgroup of fast5 files. default BaseCalled_template')
     ep_input.add_argument("--reference_path", action="store",
                           type=str, required=True,
-                          help="the reference file to be used, normally is a .fa file")
+                          help="the reference file to be used, usually is a .fa file")
     ep_input.add_argument("--is_dna", action="store", type=str, required=False,
                           default='yes',
                           help='whether the fast5 files from DNA sample or not. '
@@ -448,10 +448,10 @@ def main():
     methy_label = extraction_args.methy_label
 
     nproc = extraction_args.nproc
-    batch_num = extraction_args.f5_batch_num
+    f5_batch_num = extraction_args.f5_batch_num
 
     extract_features(fast5_dir, is_recursive, reference_path, is_dna,
-                     batch_num, write_path, nproc, corrected_group, basecall_subgroup,
+                     f5_batch_num, write_path, nproc, corrected_group, basecall_subgroup,
                      normalize_method, motifs, mod_loc, kmer_len, cent_signals_num, methy_label)
 
 

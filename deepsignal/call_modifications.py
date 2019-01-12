@@ -49,7 +49,7 @@ def _read_features_file(features_file, features_batch_q, batch_num=512):
             if len(sampleinfo) == batch_num:
                 features_batch_q.put((sampleinfo, kmers, base_means, base_stds,
                                       base_signal_lens, cent_signals, labels))
-                if features_batch_q.qsize() >= queen_size_border:
+                while features_batch_q.qsize() >= queen_size_border:
                     time.sleep(time_wait)
                 sampleinfo = []
                 kmers = []
@@ -97,10 +97,10 @@ def _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup, norma
     return features_batches, error
 
 
-def _read_features_from_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_group,
-                                 basecall_subgroup, normalize_method,
-                                 motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
-                                 methy_label, batch_num):
+def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_group,
+                            basecall_subgroup, normalize_method,
+                            motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
+                            methy_label, batch_num):
     while not fast5s_q.empty():
         try:
             fast5s = fast5s_q.get()
@@ -113,18 +113,49 @@ def _read_features_from_fast5s_q(fast5s_q, features_batch_q, errornum_q, correct
         errornum_q.put(error)
         for features_batch in features_batches:
             features_batch_q.put(features_batch)
-            if features_batch_q.qsize() >= queen_size_border:
-                time.sleep(time_wait)
+        while features_batch_q.qsize() >= queen_size_border:
+            time.sleep(time_wait)
 
 
-def _call_mods(init_learning_rate, class_num, model_path,
-               base_num, signal_num, features_batch_q, pred_str_q,
-               success_file):
+def _call_mods(features_batch, tf_sess, model, init_learning_rate):
+    sampleinfo, kmers, base_means, base_stds, base_signal_lens, \
+        cent_signals, labels = features_batch
+    labels = np.reshape(labels, (len(labels)))
+
+    feed_dict = {model.base_int: kmers,
+                 model.means: base_means,
+                 model.stds: base_stds,
+                 model.sanums: base_signal_lens,
+                 model.signals: cent_signals,
+                 model.labels: labels,
+                 model.lr: init_learning_rate,
+                 model.training: False,
+                 model.keep_prob: 1.0}
+    activation_logits, prediction = tf_sess.run(
+        [model.activation_logits, model.prediction], feed_dict=feed_dict)
+    accuracy = metrics.accuracy_score(
+        y_true=labels, y_pred=prediction)
+
+    pred_str = []
+    for idx in range(labels.shape[0]):
+        # chromosome, pos, strand, pos_in_strand, read_name, read_strand, prob_0, prob_1, called_label, seq
+        pred_str.append("\t".join([sampleinfo[idx], str(activation_logits[idx][0]),
+                                   str(activation_logits[idx][1]), str(prediction[idx]),
+                                   ''.join([code2base_dna[x] for x in kmers[idx]])]))
+
+    return pred_str, accuracy
+
+
+def _call_mods_q(init_learning_rate, class_num, model_path,
+                 base_num, signal_num, features_batch_q, pred_str_q,
+                 success_file):
 
     model = Model(base_num=base_num,
                   signal_num=signal_num, class_num=class_num)
 
-    with tf.Session() as sess:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
         saver = tf.train.Saver()
         saver.restore(sess, model_path)
         sess.run(tf.local_variables_initializer())
@@ -143,34 +174,46 @@ def _call_mods(init_learning_rate, class_num, model_path,
                 open(success_file, 'w').close()
                 break
 
-            sampleinfo, kmers, base_means, base_stds, base_signal_lens, \
-                cent_signals, labels = features_batch
-            labels = np.reshape(labels, (len(labels)))
+            pred_str, accuracy = _call_mods(features_batch, sess, model, init_learning_rate)
 
-            feed_dict = {model.base_int: kmers,
-                         model.means: base_means,
-                         model.stds: base_stds,
-                         model.sanums: base_signal_lens,
-                         model.signals: cent_signals,
-                         model.labels: labels,
-                         model.lr: init_learning_rate,
-                         model.training: False,
-                         model.keep_prob: 1.0}
-            activation_logits, prediction = sess.run(
-                [model.activation_logits, model.prediction], feed_dict=feed_dict)
-            accuracy = metrics.accuracy_score(
-                y_true=labels, y_pred=prediction)
-
-            features_str = []
-            for idx in range(labels.shape[0]):
-                # chromosome, pos, strand, pos_in_strand, read_name, read_strand, prob_0, prob_1, called_label, seq
-                features_str.append("\t".join([sampleinfo[idx], str(activation_logits[idx][0]),
-                                               str(activation_logits[idx][1]), str(prediction[idx]),
-                                               ''.join([code2base_dna[x] for x in kmers[idx]])]))
-            pred_str_q.put(features_str)
-
+            pred_str_q.put(pred_str)
             accuracy_list.append(accuracy)
         # print("eval end!")
+        print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
+
+
+def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
+                            corrected_group, basecall_subgroup, normalize_method,
+                            motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
+                            methy_label, batch_num,
+                            init_learning_rate, class_num, model_path):
+    model = Model(base_num=kmer_len,
+                  signal_num=raw_signals_len, class_num=class_num)
+
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
+        saver = tf.train.Saver()
+        saver.restore(sess, model_path)
+        sess.run(tf.local_variables_initializer())
+
+        accuracy_list = []
+
+        while not fast5s_q.empty():
+            try:
+                fast5s = fast5s_q.get()
+            except Exception:
+                break
+            features_batches, error = _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup,
+                                                                 normalize_method, motif_seqs, methyloc,
+                                                                 chrom2len, kmer_len, raw_signals_len, methy_label,
+                                                                 batch_num)
+            errornum_q.put(error)
+            for features_batch in features_batches:
+                pred_str, accuracy = _call_mods(features_batch, sess, model, init_learning_rate)
+
+                pred_str_q.put(pred_str)
+                accuracy_list.append(accuracy)
         print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
 
 
@@ -189,8 +232,102 @@ def _write_predstr_to_file(write_fp, predstr_q):
             wf.flush()
 
 
+def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
+                               corrected_group, basecall_subgroup, normalize_method,
+                               mod_loc, kmer_len, cent_signals_len, methy_label, batch_size,
+                               learning_rate, class_num, model_path, success_file, result_file,
+                               nproc):
+
+    errornum_q = mp.Queue()
+
+    pred_str_q = mp.Queue()
+
+    if nproc > 1:
+        nproc -= 1
+
+    pred_str_procs = []
+    for _ in range(nproc):
+        p = mp.Process(target=_fast5s_q_to_pred_str_q, args=(fast5s_q, errornum_q, pred_str_q,
+                                                             corrected_group, basecall_subgroup,
+                                                             normalize_method, motif_seqs, mod_loc,
+                                                             chrom2len, kmer_len, cent_signals_len,
+                                                             methy_label, batch_size, learning_rate,
+                                                             class_num, model_path))
+        p.daemon = True
+        p.start()
+        pred_str_procs.append(p)
+
+    print("write_process started..")
+    p_w = mp.Process(target=_write_predstr_to_file, args=(result_file, pred_str_q))
+    p_w.daemon = True
+    p_w.start()
+
+    for p in pred_str_procs:
+        p.join()
+    pred_str_q.put("kill")
+
+    p_w.join()
+
+    errornum_sum = 0
+    while not errornum_q.empty():
+        errornum_sum += errornum_q.get()
+    print("%d of %d fast5 files failed.." % (errornum_sum, len_fast5s))
+
+
+def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
+                               corrected_group, basecall_subgroup, normalize_method,
+                               mod_loc, kmer_len, cent_signals_len, methy_label, batch_size,
+                               learning_rate, class_num, model_path, success_file, result_file,
+                               nproc):
+    features_batch_q = mp.Queue()
+    errornum_q = mp.Queue()
+
+    pred_str_q = mp.Queue()
+
+    if nproc < 2:
+        nproc = 2
+    elif nproc > 2:
+        nproc -= 1
+
+    features_batch_procs = []
+    for _ in range(nproc - 1):
+        p = mp.Process(target=_read_features_fast5s_q, args=(fast5s_q, features_batch_q, errornum_q,
+                                                             corrected_group, basecall_subgroup,
+                                                             normalize_method, motif_seqs, mod_loc,
+                                                             chrom2len, kmer_len, cent_signals_len,
+                                                             methy_label, batch_size))
+        p.daemon = True
+        p.start()
+        features_batch_procs.append(p)
+
+    p_call_mods_gpu = mp.Process(target=_call_mods_q, args=(learning_rate, class_num, model_path,
+                                                            kmer_len, cent_signals_len, features_batch_q,
+                                                            pred_str_q, success_file))
+    p_call_mods_gpu.daemon = True
+    p_call_mods_gpu.start()
+
+    print("write_process started..")
+    p_w = mp.Process(target=_write_predstr_to_file, args=(result_file, pred_str_q))
+    p_w.daemon = True
+    p_w.start()
+
+    for p in features_batch_procs:
+        p.join()
+    features_batch_q.put("kill")
+
+    p_call_mods_gpu.join()
+    pred_str_q.put("kill")
+
+    p_w.join()
+
+    errornum_sum = 0
+    while not errornum_q.empty():
+        errornum_sum += errornum_q.get()
+    print("%d of %d fast5 files failed.." % (errornum_sum, len_fast5s))
+
+
 def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
-              batch_size, learning_rate, class_num, nproc, f5_args):
+              batch_size, learning_rate, class_num, nproc, is_gpu, f5_args):
     start = time.time()
 
     input_path = os.path.abspath(input_path)
@@ -205,54 +342,16 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
         motif_seqs, chrom2len, fast5s_q, len_fast5s = _extract_preprocess(input_path, is_recursive, motifs,
                                                                           is_dna, reference_path, f5_batch_num)
 
-        features_batch_q = mp.Queue()
-        errornum_q = mp.Queue()
-
-        pred_str_q = mp.Queue()
-
-        if nproc < 2:
-            nproc = 2
-        elif nproc > 2:
-            nproc -= 1
-        half_nproc = nproc // 2
-
-        features_batch_procs = []
-        for _ in range(half_nproc):
-            p = mp.Process(target=_read_features_from_fast5s_q, args=(fast5s_q, features_batch_q, errornum_q,
-                                                                      corrected_group, basecall_subgroup,
-                                                                      normalize_method, motif_seqs, mod_loc,
-                                                                      chrom2len, kmer_len, cent_signals_len,
-                                                                      methy_label, batch_size))
-            p.daemon = True
-            p.start()
-            features_batch_procs.append(p)
-
-        predstr_procs = []
-        for _ in range(nproc-half_nproc):
-            p = mp.Process(target=_call_mods, args=(learning_rate, class_num, model_path,
-                                                    kmer_len, cent_signals_len, features_batch_q,
-                                                    pred_str_q, success_file))
-            p.daemon = True
-            p.start()
-            predstr_procs.append(p)
-
-        print("write_process started..")
-        p_w = mp.Process(target=_write_predstr_to_file, args=(result_file, pred_str_q))
-        p_w.daemon = True
-        p_w.start()
-
-        for p in features_batch_procs:
-            p.join()
-        features_batch_q.put("kill")
-
-        for p in predstr_procs:
-            p.join()
-        pred_str_q.put("kill")
-
-        errornum_sum = 0
-        while not errornum_q.empty():
-            errornum_sum += errornum_q.get()
-        print("%d of %d fast5 files failed.." % (errornum_sum, len_fast5s))
+        if is_gpu:
+            _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s, corrected_group,
+                                       basecall_subgroup, normalize_method, mod_loc, kmer_len, cent_signals_len,
+                                       methy_label, batch_size, learning_rate, class_num, model_path, success_file,
+                                       result_file, nproc)
+        else:
+            _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s, corrected_group,
+                                       basecall_subgroup, normalize_method, mod_loc, kmer_len, cent_signals_len,
+                                       methy_label, batch_size, learning_rate, class_num, model_path, success_file,
+                                       result_file, nproc)
 
     else:
         features_batch_q = mp.Queue()
@@ -265,10 +364,16 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
         predstr_procs = []
         if nproc > 2:
             nproc -= 2
-        for _ in range(nproc):
-            p = mp.Process(target=_call_mods, args=(learning_rate, class_num, model_path,
-                                                    kmer_len, cent_signals_len, features_batch_q,
-                                                    pred_str_q, success_file))
+
+        if is_gpu:
+            nproc_tf = 1
+        else:
+            nproc_tf = nproc
+
+        for _ in range(nproc_tf):
+            p = mp.Process(target=_call_mods_q, args=(learning_rate, class_num, model_path,
+                                                      kmer_len, cent_signals_len, features_batch_q,
+                                                      pred_str_q, success_file))
             p.daemon = True
             p.start()
             predstr_procs.append(p)
@@ -284,7 +389,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
 
         p_rf.join()
 
-    p_w.join()
+        p_w.join()
 
     if os.path.exists(success_file):
         os.remove(success_file)
@@ -332,7 +437,7 @@ def main():
                       help='the corrected subgroup of fast5 files. default BaseCalled_template')
     p_f5.add_argument("--reference_path", action="store",
                       type=str, required=False,
-                      help="the reference file to be used, normally is a .fa file")
+                      help="the reference file to be used, usually is a .fa file")
     p_f5.add_argument("--is_dna", action="store", type=str, required=False,
                       default='yes',
                       help='whether the fast5 files from DNA sample or not. '
@@ -363,6 +468,11 @@ def main():
 
     parser.add_argument("--nproc", "-p", action="store", type=int, default=1,
                         required=False, help="number of processes to be used, default 1.")
+    parser.add_argument("--is_gpu", action="store", type=str, default="no", required=False,
+                        choices=["yes", "no"], help="use gpu for tensorflow or not, default no. "
+                                                    "If you're using a gpu machine, please set to yes. "
+                                                    "Note that when is_gpu is yes, --nproc is not valid "
+                                                    "to tensorflow.")
 
     args = parser.parse_args()
 
@@ -379,6 +489,7 @@ def main():
     class_num = args.class_num
 
     nproc = args.nproc
+    is_gpu = str2bool(args.is_gpu)
 
     # for FAST5_EXTRACTION
     is_recursive = str2bool(args.recursively)
@@ -396,7 +507,7 @@ def main():
                normalize_method, motifs, mod_loc, methy_label, f5_batch_num)
 
     call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
-              batch_size, learning_rate, class_num, nproc, f5_args)
+              batch_size, learning_rate, class_num, nproc, is_gpu, f5_args)
 
 
 if __name__ == '__main__':
