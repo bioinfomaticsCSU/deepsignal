@@ -330,6 +330,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
               batch_size, learning_rate, class_num, nproc, is_gpu, f5_args):
     start = time.time()
 
+    model_path = os.path.abspath(model_path)
     input_path = os.path.abspath(input_path)
     success_file = input_path.rstrip("/") + ".success"
     if os.path.exists(success_file):
@@ -397,7 +398,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("call_modifications")
 
     p_input = parser.add_argument_group("INPUT")
     p_input.add_argument("--input_path", "-i", action="store", type=str,
@@ -408,7 +409,7 @@ def main():
 
     p_call = parser.add_argument_group("CALL")
     p_call.add_argument("--model_path", "-m", action="store", type=str, required=True,
-                        help="the trained model file path (.ckpt)")
+                        help="file path of the trained model (.ckpt)")
     p_call.add_argument("--kmer_len", "-x", action="store", default=17, type=int, required=False,
                         help="base num of the kmer, default 17")
     p_call.add_argument("--cent_signals_len", "-y", action="store", default=360, type=int, required=False,
@@ -416,7 +417,7 @@ def main():
     p_call.add_argument("--batch_size", "-b", default=512, type=int, required=False,
                         action="store", help="batch size, default 512")
     p_call.add_argument("--learning_rate", "-l", default=0.001, type=float, required=False,
-                        action="store", help="learning rate, default 0.001")
+                        action="store", help="init learning rate, default 0.001")
     p_call.add_argument("--class_num", "-c", action="store", default=2, type=int, required=False,
                         help="class num, default 2")
 

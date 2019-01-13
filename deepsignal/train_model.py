@@ -1,0 +1,275 @@
+"""
+train a deepsignal model
+"""
+
+import tensorflow as tf
+import argparse
+import time
+import os
+import shutil
+import numpy as np
+from model import Model
+from sklearn import metrics
+
+from utils.process_utils import base2code_dna
+
+
+def _parse_a_line(line):
+    words = tf.decode_csv(line, [[""]] * 12, "\t")
+
+    kmer = words[6]
+    base_mean = tf.string_to_number(tf.string_split([words[7]], ",").values, tf.float32)
+    base_std = tf.string_to_number(tf.string_split([words[8]], ",").values, tf.float32)
+    base_signal_len = tf.string_to_number(tf.string_split([words[9]], ",").values, tf.int32)
+    cent_signals = tf.string_to_number(tf.string_split([words[10]], ",").values, tf.float32)
+    label = tf.string_to_number(words[11], tf.int32)
+
+    return kmer, base_mean, base_std, base_signal_len, cent_signals, label
+
+
+def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
+          batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num, display_step):
+    train_file = os.path.abspath(train_file)
+    valid_file = os.path.abspath(valid_file)
+
+    if os.path.exists(model_dir):
+        shutil.rmtree(model_dir)
+        print('the previous model directory deleted...')
+    os.mkdir(model_dir)
+
+    if log_dir is not None:
+        if os.path.exists(log_dir):
+            shutil.rmtree(log_dir)
+            print('the previous log directory deleted...')
+        os.mkdir(log_dir)
+
+    # train dataset
+    dataset = tf.data.TextLineDataset([train_file]).map(_parse_a_line)
+    dataset = dataset.shuffle(batch_size * 3).batch(batch_size)
+    iterator = dataset.make_initializable_iterator()
+    element = iterator.get_next()
+
+    # valid dataset
+    valid_dataset = tf.data.TextLineDataset([valid_file]).map(_parse_a_line)
+    valid_dataset = valid_dataset.batch(batch_size)
+    valid_iterator = valid_dataset.make_initializable_iterator()
+    valid_element = valid_iterator.get_next()
+
+    model = Model(base_num=kmer_len,
+                  signal_num=cent_signals_len, class_num=class_num)
+
+    if log_dir is not None:
+        if os.path.exists(log_dir + '/' + 'train.txt'):
+            os.remove(log_dir + '/' + 'train.txt')
+        if os.path.exists(log_dir + '/' + 'test.txt'):
+            os.remove(log_dir + '/' + 'test.txt')
+
+    with tf.Session() as sess:
+        # merged = tf.summary.merge_all()
+
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
+        # sess.run(model.running_validation_vars_init)
+        saver = tf.train.Saver()
+
+        for epoch_id in range(epoch_num):
+            start = time.time()
+            if epoch_id == 0 or epoch_id == 1:
+                epoch_learning_rate = learning_rate
+            else:
+                # TODO: check if this is right
+                epoch_learning_rate = learning_rate * decay_rate
+
+            train_accuracy_total = []
+            train_recall_total = []
+            train_precision_total = []
+            train_loss_total = []
+
+            test_accuracy_total = []
+            test_recall_total = []
+            test_precision_total = []
+            test_loss_total = []
+
+            iter_id = 0
+
+            sess.run(iterator.initializer)
+
+            while True:
+                try:
+                    b_kmer, b_base_mean, b_base_std, b_base_signal_len, \
+                        b_cent_signals, b_label = sess.run(element)
+                except tf.errors.OutOfRangeError:
+                    break
+                b_kmer_code = []
+                for kmer_bases in b_kmer:
+                    b_kmer_code.append([base2code_dna[x] for x in kmer_bases.decode("utf-8")])
+
+                b_label = np.reshape(b_label, (b_label.shape[0]))
+                feed_dict = {model.base_int: b_kmer_code,
+                             model.means: b_base_mean,
+                             model.stds: b_base_std,
+                             model.sanums: b_base_signal_len,
+                             model.signals: b_cent_signals,
+                             model.labels: b_label,
+                             model.lr: epoch_learning_rate,
+                             model.training: True,
+                             model.keep_prob: keep_prob}
+                train_loss, _, train_prediction = sess.run(
+                    [model.loss, model.train_opt, model.prediction], feed_dict=feed_dict)
+
+                accu_batch = metrics.accuracy_score(
+                    y_true=b_label, y_pred=train_prediction)
+                recall_batch = metrics.recall_score(
+                    y_true=b_label, y_pred=train_prediction)
+                precision_batch = metrics.precision_score(
+                    y_true=b_label, y_pred=train_prediction)
+
+                train_loss_total.append(train_loss)
+                train_accuracy_total.append(accu_batch)
+                train_recall_total.append(recall_batch)
+                train_precision_total.append(precision_batch)
+
+                iter_id += 1
+                if iter_id % display_step == 0:
+                    # save the metrics of train
+                    if log_dir is not None:
+                        train_log = open(log_dir + '/' + 'train.txt', 'a')
+                        t_log = "epoch:%d, iterid:%d, loss:%.3f, accuracy:%.3f, recall:%.3f, precision:%.3f\n" % \
+                            (epoch_id, iter_id, np.mean(train_loss_total), np.mean(train_accuracy_total),
+                             np.mean(train_recall_total), np.mean(train_precision_total))
+                        train_log.write(t_log)
+                        train_log.close()
+
+                    sess.run(valid_iterator.initializer)
+                    while True:
+                        try:
+                            v_kmer, v_base_mean, v_base_std, v_base_signal_len, \
+                                v_cent_signals, v_label = sess.run(valid_element)
+                        except tf.errors.OutOfRangeError:
+                            break
+                        v_kmer_code = []
+                        for kmer_bases in v_kmer:
+                            v_kmer_code.append([base2code_dna[x] for x in kmer_bases.decode("utf-8")])
+
+                        v_label = np.reshape(v_label, (v_label.shape[0]))
+                        feed_dict = {model.base_int: v_kmer_code,
+                                     model.means: v_base_mean,
+                                     model.stds: v_base_std,
+                                     model.sanums: v_base_signal_len,
+                                     model.signals: v_cent_signals,
+                                     model.labels: v_label,
+                                     model.lr: learning_rate,
+                                     model.training: False,
+                                     model.keep_prob: 1.0}
+                        test_loss, test_prediction = sess.run(
+                            [model.loss, model.prediction], feed_dict=feed_dict)
+
+                        accu_batch = metrics.accuracy_score(
+                            y_true=v_label, y_pred=test_prediction)
+                        recall_batch = metrics.recall_score(
+                            y_true=v_label, y_pred=test_prediction)
+                        precision_batch = metrics.precision_score(
+                            y_true=v_label, y_pred=test_prediction)
+
+                        test_loss_total.append(test_loss)
+                        test_accuracy_total.append(accu_batch)
+                        test_recall_total.append(recall_batch)
+                        test_precision_total.append(precision_batch)
+
+                    # save the metrics of test
+                    if log_dir is not None:
+                        valid_log = open(log_dir + '/' + 'test.txt', 'a')
+                        t_log = "epoch:%d, iterid:%d, loss:%.3f, accuracy:%.3f, recall:%.3f, precision:%.3f\n" % \
+                            (epoch_id, iter_id, np.mean(test_loss_total), np.mean(test_accuracy_total),
+                             np.mean(test_recall_total), np.mean(test_precision_total))
+                        valid_log.write(t_log)
+                        valid_log.close()
+
+                    end = time.time()
+                    line = "Epoch: %d, iterid: %d\n train_loss: %.3f test_loss: %.3f train_accuracy: %.3f " \
+                           "test_accuracy: %.3f time_cost: %.2f" % (epoch_id, iter_id, np.mean(train_loss_total),
+                                                                    np.mean(test_loss_total),
+                                                                    np.mean(train_accuracy_total),
+                                                                    np.mean(test_accuracy_total),
+                                                                    end - start)
+                    print(line)
+                    # reset train metrics
+                    train_accuracy_total = []
+                    train_recall_total = []
+                    train_precision_total = []
+                    train_loss_total = []
+
+                    # reset valid metrics
+                    test_accuracy_total = []
+                    test_recall_total = []
+                    test_precision_total = []
+                    test_loss_total = []
+
+                    start = time.time()
+                    saver.save(sess, "/".join([model_dir, "epoch_" + str(epoch_id) + '.ckpt']))
+
+
+def main():
+    parser = argparse.ArgumentParser("train a model")
+
+    p_input = parser.add_argument_group("INPUT")
+    p_input.add_argument("--train_file", action="store", type=str, required=True,
+                         help="file contains samples for training, from extract_features.py. "
+                              "The file should contain shuffled positive and negative samples.")
+    p_input.add_argument("--valid_file", action="store", type=str, required=True,
+                         help="file contains samples for testing, from extract_features.py. "
+                              "The file should contain shuffled positive and negative samples.")
+
+    p_output = parser.add_argument_group("OUTPUT")
+    p_output.add_argument("--model_dir", "-o", action="store", type=str, required=True,
+                          help="directory for saving the trained model")
+    p_output.add_argument("--log_dir", "-g", action="store", type=str, required=False,
+                          default=None,
+                          help="directory for saving the training log")
+
+    p_train = parser.add_argument_group("TRAIN")
+    p_train.add_argument("--kmer_len", "-x", action="store", default=17, type=int, required=False,
+                         help="base num of the kmer, default 17")
+    p_train.add_argument("--cent_signals_len", "-y", action="store", default=360, type=int, required=False,
+                         help="the number of central signals of the kmer to be used, default 360")
+
+    p_train.add_argument("--batch_size", "-b", default=512, type=int, required=False,
+                         action="store", help="batch size, default 512")
+    p_train.add_argument("--learning_rate", "-l", default=0.001, type=float, required=False,
+                         action="store", help="init learning rate, default 0.001")
+    p_train.add_argument("--decay_rate", "-d", default=0.1, type=float, required=False,
+                         action="store", help="decay rate, default 0.1")
+    p_train.add_argument("--class_num", "-c", action="store", default=2, type=int, required=False,
+                         help="class num, default 2")
+    p_train.add_argument("--keep_prob", action="store", default=0.5, type=float,
+                         required=False, help="keep prob, default 0.5")
+    p_train.add_argument("--epoch_num", action="store", default=10, type=int,
+                         required=False, help="epoch num, default 10")
+    p_train.add_argument("--display_step", action="store", default=100, type=int,
+                         required=False, help="display step, default 100")
+
+    args = parser.parse_args()
+
+    train_file = args.train_file
+    valid_file = args.valid_file
+
+    model_dir = args.model_dir
+    log_dir = args.log_dir
+
+    kmer_len = args.kmer_len
+    cent_signals_len = args.cent_signals_len
+    batch_size = args.batch_size
+    learning_rate = args.learning_rate
+    decay_rate = args.decay_rate
+    class_num = args.class_num
+    keep_prob = args.keep_prob
+    epoch_num = args.epoch_num
+    display_step = args.display_step
+
+    train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
+          batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num,
+          display_step)
+
+
+if __name__ == '__main__':
+    main()
