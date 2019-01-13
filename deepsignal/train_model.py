@@ -15,9 +15,12 @@ from utils.process_utils import base2code_dna
 
 
 def _parse_a_line(line):
+    def _kmer2code(kmer):
+        return np.array([base2code_dna[x] for x in kmer.decode("utf-8")], np.int32)
+
     words = tf.decode_csv(line, [[""]] * 12, "\t")
 
-    kmer = words[6]
+    kmer = tf.py_func(_kmer2code, [words[6]], tf.int32)
     base_mean = tf.string_to_number(tf.string_split([words[7]], ",").values, tf.float32)
     base_std = tf.string_to_number(tf.string_split([words[8]], ",").values, tf.float32)
     base_signal_len = tf.string_to_number(tf.string_split([words[9]], ",").values, tf.int32)
@@ -100,12 +103,8 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                         b_cent_signals, b_label = sess.run(element)
                 except tf.errors.OutOfRangeError:
                     break
-                b_kmer_code = []
-                for kmer_bases in b_kmer:
-                    b_kmer_code.append([base2code_dna[x] for x in kmer_bases.decode("utf-8")])
-
                 b_label = np.reshape(b_label, (b_label.shape[0]))
-                feed_dict = {model.base_int: b_kmer_code,
+                feed_dict = {model.base_int: b_kmer,
                              model.means: b_base_mean,
                              model.stds: b_base_std,
                              model.sanums: b_base_signal_len,
@@ -147,12 +146,8 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                                 v_cent_signals, v_label = sess.run(valid_element)
                         except tf.errors.OutOfRangeError:
                             break
-                        v_kmer_code = []
-                        for kmer_bases in v_kmer:
-                            v_kmer_code.append([base2code_dna[x] for x in kmer_bases.decode("utf-8")])
-
                         v_label = np.reshape(v_label, (v_label.shape[0]))
-                        feed_dict = {model.base_int: v_kmer_code,
+                        feed_dict = {model.base_int: v_kmer,
                                      model.means: v_base_mean,
                                      model.stds: v_base_std,
                                      model.sanums: v_base_signal_len,
