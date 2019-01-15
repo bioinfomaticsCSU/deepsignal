@@ -30,12 +30,17 @@ conda activate deepsignalenv
 The virtual environment can also be created by using [*virtualenv*](https://github.com/pypa/virtualenv/).
 
 #### Install deepsignal
-After creating the environment, download and install deepsignl from github:
+After creating the environment, download and install the **lastest** deepsignl from github:
 ```bash
 git clone https://github.com/bioinfomaticsCSU/deepsignal.git
 cd deepsignal
 python setup.py install
 ```
+or install deepsignal using *pip*:
+```bash
+pip install deepsignal
+```
+
 [tombo](https://github.com/nanoporetech/tombo) is required to be installed in the same environment:
 ```bash
 # install using conda
