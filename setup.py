@@ -1,5 +1,5 @@
 from __future__ import print_function
-from setuptools import setup, find_packages
+from setuptools import setup
 from setuptools.command.test import test as TestCommand
 import codecs
 import os
@@ -40,33 +40,33 @@ long_description = read('README.rst')
 
 setup(
     name='deepsignal',
+    packages=['deepsignal'],
+    keywords=['methylation', 'nanopore', 'neural network'],
     version=find_version('deepsignal', '__init__.py'),
     url='https://github.com/bioinfomaticsCSU/deepsignal',
-    license='License',
+    license='GNU General Public License v3 (GPLv3)',
     author='Peng Ni, Neng Huang',
-    tests_require=['pytest'],
+    # tests_require=['pytest'],
     install_requires=['numpy>=1.15.3',
                       'h5py>=2.8.0',
-                      'ont-tombo>=1.5',
                       'statsmodels>=0.9.0',
                       'scikit-learn>=0.20.1',
                       'tensorflow==1.8.0',
                       ],
-    cmdclass={'test': PyTest},
+    # cmdclass={'test': PyTest},
     author_email='543943952@qq.com',
     description='A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads',
     long_description=long_description,
     entry_points={
-        '*': [
-            '*',
+        'console_scripts': [
+            'deepsignal=deepsignal.deepsignal:main',
             ],
         },
-    packages=['*'],
-    include_package_data=True,
     platforms='any',
-    test_suite='**test',
+    # test_suite='test',
     zip_safe=False,
-    package_data={'deepsignal': ['*']},
+    # include_package_data=True,
+    # package_data={'deepsignal': ['utils/*']},
     classifiers=[
         'Programming Language :: Python :: 3',
         'Development Status :: 4 - Beta',
@@ -74,8 +74,8 @@ setup(
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: OS Independent',
         ],
-    extras_require={
-        'testing': ['pytest'],
-      },
-    scripts=['deepsignal/deepsignal.py'],
+    # extras_require={
+    #     'testing': ['pytest'],
+    #   },
+    # scripts=['deepsignal/deepsignal.py'],
 )

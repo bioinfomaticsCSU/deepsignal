@@ -1,11 +1,14 @@
 """
 call modifications from fast5 files or extracted features,
 using tensorflow and the trained model.
+output format: chromosome, pos, strand, pos_in_strand, read_name, read_strand,
+prob_0, prob_1, called_label, seq
 """
 
 import tensorflow as tf
 import argparse
 import os
+import sys
 import numpy as np
 from model import Model
 from sklearn import metrics
@@ -398,7 +401,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
 
 
 def main():
-    parser = argparse.ArgumentParser("call_modifications")
+    parser = argparse.ArgumentParser("call modifications")
 
     p_input = parser.add_argument_group("INPUT")
     p_input.add_argument("--input_path", "-i", action="store", type=str,
@@ -512,4 +515,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

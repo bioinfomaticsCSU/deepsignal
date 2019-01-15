@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 """
 shuffle rows of a big file, rewrite to a new file
 """

@@ -1,5 +1,7 @@
 """
-train a deepsignal model
+train a deepsignal model. need two independent datasets for training and validating.
+For CpG, Up to 20m (~10m positive and ~10m negative) samples for training and
+10k (~5k positive and ~5k negative) samples for validating are sufficient.
 """
 
 import tensorflow as tf
@@ -7,6 +9,7 @@ import argparse
 import time
 import os
 import shutil
+import sys
 import numpy as np
 from model import Model
 from sklearn import metrics
@@ -15,8 +18,8 @@ from utils.process_utils import base2code_dna
 
 
 def _parse_a_line(line):
-    def _kmer2code(kmer):
-        return np.array([base2code_dna[x] for x in kmer.decode("utf-8")], np.int32)
+    def _kmer2code(kmer_bytes):
+        return np.array([base2code_dna[x] for x in kmer_bytes.decode("utf-8")], np.int32)
 
     words = tf.decode_csv(line, [[""]] * 12, "\t")
 
@@ -61,13 +64,17 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
     model = Model(base_num=kmer_len,
                   signal_num=cent_signals_len, class_num=class_num)
 
+    train_log_txt = 'train.txt'
+    valid_log_txt = 'valid.txt'
     if log_dir is not None:
-        if os.path.exists(log_dir + '/' + 'train.txt'):
-            os.remove(log_dir + '/' + 'train.txt')
-        if os.path.exists(log_dir + '/' + 'test.txt'):
-            os.remove(log_dir + '/' + 'test.txt')
+        if os.path.exists(log_dir + '/' + train_log_txt):
+            os.remove(log_dir + '/' + train_log_txt)
+        if os.path.exists(log_dir + '/' + valid_log_txt):
+            os.remove(log_dir + '/' + valid_log_txt)
 
-    with tf.Session() as sess:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
         # merged = tf.summary.merge_all()
 
         sess.run(tf.global_variables_initializer())
@@ -80,7 +87,6 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
             if epoch_id == 0 or epoch_id == 1:
                 epoch_learning_rate = learning_rate
             else:
-                # TODO: check if this is right
                 epoch_learning_rate = learning_rate * decay_rate
 
             train_accuracy_total = []
@@ -88,6 +94,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
             train_precision_total = []
             train_loss_total = []
 
+            # validation
             test_accuracy_total = []
             test_recall_total = []
             test_precision_total = []
@@ -132,7 +139,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                 if iter_id % display_step == 0:
                     # save the metrics of train
                     if log_dir is not None:
-                        train_log = open(log_dir + '/' + 'train.txt', 'a')
+                        train_log = open(log_dir + '/' + train_log_txt, 'a')
                         t_log = "epoch:%d, iterid:%d, loss:%.3f, accuracy:%.3f, recall:%.3f, precision:%.3f\n" % \
                             (epoch_id, iter_id, np.mean(train_loss_total), np.mean(train_accuracy_total),
                              np.mean(train_recall_total), np.mean(train_precision_total))
@@ -173,7 +180,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
 
                     # save the metrics of test
                     if log_dir is not None:
-                        valid_log = open(log_dir + '/' + 'test.txt', 'a')
+                        valid_log = open(log_dir + '/' + valid_log_txt, 'a')
                         t_log = "epoch:%d, iterid:%d, loss:%.3f, accuracy:%.3f, recall:%.3f, precision:%.3f\n" % \
                             (epoch_id, iter_id, np.mean(test_loss_total), np.mean(test_accuracy_total),
                              np.mean(test_recall_total), np.mean(test_precision_total))
@@ -181,13 +188,15 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                         valid_log.close()
 
                     end = time.time()
-                    line = "Epoch: %d, iterid: %d\n train_loss: %.3f test_loss: %.3f train_accuracy: %.3f " \
-                           "test_accuracy: %.3f time_cost: %.2f" % (epoch_id, iter_id, np.mean(train_loss_total),
-                                                                    np.mean(test_loss_total),
-                                                                    np.mean(train_accuracy_total),
-                                                                    np.mean(test_accuracy_total),
-                                                                    end - start)
-                    print(line)
+                    line = "Epoch: %d, iterid: %d\n train_loss: %.3f valid_loss: %.3f train_accuracy: %.3f " \
+                           "valid_accuracy: %.3f time_cost: %.2f" % (epoch_id, iter_id, np.mean(train_loss_total),
+                                                                     np.mean(test_loss_total),
+                                                                     np.mean(train_accuracy_total),
+                                                                     np.mean(test_accuracy_total),
+                                                                     end - start)
+                    sys.stdout.write(line + "\n")
+                    sys.stdout.flush()
+
                     # reset train metrics
                     train_accuracy_total = []
                     train_recall_total = []
@@ -201,19 +210,23 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                     test_loss_total = []
 
                     start = time.time()
-                    saver.save(sess, "/".join([model_dir, "epoch_" + str(epoch_id) + '.ckpt']))
+                    saver.save(sess, "/".join([model_dir,
+                                               "bn_" + str(kmer_len) + ".sn_" + str(cent_signals_len) +
+                                               ".epoch_" + str(epoch_id) + '.ckpt']))
 
 
 def main():
-    parser = argparse.ArgumentParser("train a model")
+    parser = argparse.ArgumentParser("train a model, need two independent datasets for training and validating")
 
     p_input = parser.add_argument_group("INPUT")
     p_input.add_argument("--train_file", action="store", type=str, required=True,
                          help="file contains samples for training, from extract_features.py. "
-                              "The file should contain shuffled positive and negative samples.")
+                              "The file should contain shuffled positive and negative samples. "
+                              "For CpG, Up to 20m (~10m positive and ~10m negative) samples are sufficient.")
     p_input.add_argument("--valid_file", action="store", type=str, required=True,
                          help="file contains samples for testing, from extract_features.py. "
-                              "The file should contain shuffled positive and negative samples.")
+                              "The file should contain shuffled positive and negative samples. "
+                              "For CpG, 10k (~5k positive and ~5k negative) samples are sufficient.")
 
     p_output = parser.add_argument_group("OUTPUT")
     p_output.add_argument("--model_dir", "-o", action="store", type=str, required=True,
@@ -238,8 +251,8 @@ def main():
                          help="class num, default 2")
     p_train.add_argument("--keep_prob", action="store", default=0.5, type=float,
                          required=False, help="keep prob, default 0.5")
-    p_train.add_argument("--epoch_num", action="store", default=10, type=int,
-                         required=False, help="epoch num, default 10")
+    p_train.add_argument("--epoch_num", action="store", default=7, type=int,
+                         required=False, help="epoch num, default 7")
     p_train.add_argument("--display_step", action="store", default=100, type=int,
                          required=False, help="display step, default 100")
 
@@ -267,4 +280,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

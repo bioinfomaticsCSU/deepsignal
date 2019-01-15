@@ -1,38 +1,13 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 import argparse
 import os
+
+from txt_formater import DNAReference
 
 
 def str2bool(v):
     # susendberg's function
     return v.lower() in ("yes", "true", "t", "1")
-
-
-class DNAReference:
-    def __init__(self, reffile):
-        self._contignames = []
-        self._contigs = {}  # contigname 2 contigseq
-        with open(reffile, 'r') as rf:
-            contigname = ''
-            contigseq = ''
-            for line in rf:
-                if line.startswith('>'):
-                    if contigname != '' and contigseq != '':
-                        self._contigs[contigname] = contigseq
-                        self._contignames.append(contigname)
-                    contigname = line.strip()[1:].split(' ')[0]
-                    contigseq = ''
-                else:
-                    # turn to upper case
-                    contigseq += line.strip().upper()
-            self._contigs[contigname] = contigseq
-            self._contignames.append(contigname)
-
-    def getcontigs(self):
-        return self._contigs
-
-    def getcontignames(self):
-        return self._contignames
 
 
 def get_ref_seq_len(ref_path):

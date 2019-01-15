@@ -357,7 +357,7 @@ def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
 
 def main():
     extraction_parser = argparse.ArgumentParser("extract features from corrected (tombo) fast5s for "
-                                                "training or testing using deepsignal. "
+                                                "training or testing."
                                                 "\nIt is suggested that running this module 1 flowcell a time, "
                                                 "or a group of flowcells a time, "
                                                 "if the whole data is extremely large.")
@@ -383,7 +383,7 @@ def main():
                           default='yes',
                           help='whether the fast5 files from DNA sample or not. '
                                'default true, t, yes, 1. '
-                               'setting this option to no/false/0 means '
+                               'set this option to no/false/0 if '
                                'the fast5 files are from RNA sample.')
 
     ep_extraction = extraction_parser.add_argument_group("EXTRACTION")
