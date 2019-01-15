@@ -4,12 +4,12 @@ DeepSignal constructs a BiLSTM+Inception structure to detect DNA methylation sta
 built with **Tensorflow 1.8** and Python 3.
 
 ## Contents
-- [Install](#Install)
+- [Installation](#Installation)
 - [Trained models](#Trained-models)
 - [Example data](#Example-data)
 - [Usage](#Usage)
 
-## Install
+## Installation
 deepsignal is built on Python3. [tombo](https://github.com/nanoporetech/tombo) is required to re-squiggle the raw signals from nanopore reads before running deepsignal.
    - Prerequisites:\
        [Python 3.*](https://www.python.org/)\
@@ -30,7 +30,7 @@ conda activate deepsignalenv
 The virtual environment can also be created by using [*virtualenv*](https://github.com/pypa/virtualenv/).
 
 #### Install deepsignal
-After creating the environment, download and install the **lastest** deepsignl from github:
+After creating the environment, download and install deepsignal (**lastest version**) from github:
 ```bash
 git clone https://github.com/bioinfomaticsCSU/deepsignal.git
 cd deepsignal
