@@ -65,8 +65,8 @@ setup(
     platforms='any',
     # test_suite='test',
     zip_safe=False,
-    # include_package_data=True,
-    # package_data={'deepsignal': ['utils/*']},
+    include_package_data=True,
+    package_data={'deepsignal': ['utils/*']},
     classifiers=[
         'Programming Language :: Python :: 3',
         'Development Status :: 4 - Beta',

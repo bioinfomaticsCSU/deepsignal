@@ -1,5 +1,7 @@
-from utils.process_utils import complement_seq
-from utils.process_utils import get_refloc_of_methysite_in_motif
+from __future__ import absolute_import
+
+from deepsignal.utils.process_utils import complement_seq
+from deepsignal.utils.process_utils import get_refloc_of_methysite_in_motif
 
 
 def get_contig2len(ref_path):

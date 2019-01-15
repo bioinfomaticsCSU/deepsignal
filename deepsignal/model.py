@@ -11,10 +11,10 @@
                    2018/8/6:
 -------------------------------------------------
 """
-__author__ = 'huangneng'
+from __future__ import absolute_import
 
 import numpy as np
-from layers import *
+from .layers import *
 
 vocab_size = 1024
 embedding_size = 128

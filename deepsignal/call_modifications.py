@@ -5,23 +5,25 @@ output format: chromosome, pos, strand, pos_in_strand, read_name, read_strand,
 prob_0, prob_1, called_label, seq
 """
 
+from __future__ import absolute_import
+
 import tensorflow as tf
 import argparse
 import os
 import sys
 import numpy as np
-from model import Model
 from sklearn import metrics
 
 import multiprocessing as mp
 import time
 
-from utils.process_utils import base2code_dna
-from utils.process_utils import code2base_dna
-from utils.process_utils import str2bool
+from .model import Model
+from .utils.process_utils import base2code_dna
+from .utils.process_utils import code2base_dna
+from .utils.process_utils import str2bool
 
-from extract_features import _extract_features
-from extract_features import _extract_preprocess
+from .extract_features import _extract_features
+from .extract_features import _extract_preprocess
 
 queen_size_border = 1000
 time_wait = 5

@@ -1,15 +1,29 @@
 #! /usr/bin/env python
 
+from __future__ import absolute_import
+
 import argparse
 
-from extract_features import extract_features
-from call_modifications import call_mods
-from train_model import train
+from .extract_features import extract_features
+from .call_modifications import call_mods
+from .train_model import train
 
-from utils.process_utils import str2bool
+from .utils.process_utils import str2bool
+
+
+def display_args(args):
+    arg_vars = vars(args)
+    print("# ===============================================")
+    print("parameters: ")
+    for arg_key in arg_vars.keys():
+        if arg_key != 'func':
+            print("{}:\n\t{}".format(arg_key, arg_vars[arg_key]))
+    print("# ===============================================")
 
 
 def main_extraction(args):
+    display_args(args)
+
     fast5_dir = args.fast5_dir
     is_recursive = str2bool(args.recursively)
 
@@ -36,6 +50,8 @@ def main_extraction(args):
 
 
 def main_call_mods(args):
+    display_args(args)
+
     input_path = args.input_path
 
     model_path = args.model_path
@@ -71,6 +87,8 @@ def main_call_mods(args):
 
 
 def main_train(args):
+    display_args(args)
+
     train_file = args.train_file
     valid_file = args.valid_file
 
@@ -95,10 +113,10 @@ def main_train(args):
 def main():
     parser = argparse.ArgumentParser(description="detecting base modifications from Nanopore sequencing reads, "
                                                  "deepsignal contains three modules: \n"
-                                                 "\tpython %(prog)s extract: extract features from corrected (tombo) "
+                                                 "\t%(prog)s extract: extract features from corrected (tombo) "
                                                  "fast5s for training or testing\n"
-                                                 "\tpython %(prog)s call_mods: call modifications\n"
-                                                 "\tpython %(prog)s train: train a model, need two independent "
+                                                 "\t%(prog)s call_mods: call modifications\n"
+                                                 "\t%(prog)s train: train a model, need two independent "
                                                  "datasets for training and validating",
                                      formatter_class=argparse.RawTextHelpFormatter)
 

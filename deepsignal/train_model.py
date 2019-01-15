@@ -4,6 +4,8 @@ For CpG, Up to 20m (~10m positive and ~10m negative) samples for training and
 10k (~5k positive and ~5k negative) samples for validating are sufficient.
 """
 
+from __future__ import absolute_import
+
 import tensorflow as tf
 import argparse
 import time
@@ -11,10 +13,10 @@ import os
 import shutil
 import sys
 import numpy as np
-from model import Model
 from sklearn import metrics
 
-from utils.process_utils import base2code_dna
+from .model import Model
+from .utils.process_utils import base2code_dna
 
 
 def _parse_a_line(line):

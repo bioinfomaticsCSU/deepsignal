@@ -8,6 +8,7 @@
 */
 """
 
+from __future__ import absolute_import
 
 import tensorflow as tf
 from tensorflow.contrib.rnn import LSTMCell

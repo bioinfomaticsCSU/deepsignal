@@ -4,6 +4,8 @@ chrom, pos, alignstrand, pos_in_strand, readname, read_strand, k_mer, signal_mea
 signal_stds, signal_lens, cent_signals, methy_label
 """
 
+from __future__ import absolute_import
+
 import sys
 import argparse
 import time
@@ -13,12 +15,12 @@ import numpy as np
 import multiprocessing as mp
 from statsmodels import robust
 
-from utils.process_utils import str2bool
-from utils.process_utils import get_fast5s
-from utils.process_utils import get_refloc_of_methysite_in_motif
-from utils.process_utils import get_motif_seqs
+from .utils.process_utils import str2bool
+from .utils.process_utils import get_fast5s
+from .utils.process_utils import get_refloc_of_methysite_in_motif
+from .utils.process_utils import get_motif_seqs
 
-from utils.ref_reader import get_contig2len
+from .utils.ref_reader import get_contig2len
 
 reads_group = 'Raw/Reads'
 queen_size_border = 2000
