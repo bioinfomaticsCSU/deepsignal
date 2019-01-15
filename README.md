@@ -1,119 +1,152 @@
 # DeepSignal
-## DeepSignal: A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads.
+## A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads.
 DeepSignal constructs a BiLSTM+Inception structure to detect DNA methylation state from Nanopore reads. It is
 built with **Tensorflow 1.8** and Python 3.
 
 ## Contents
-- [Install](#install)
-    - [Install Dependencies](#Install-Dependencies)
-    - [Install DeepSignal from Github](#Install-DeepSignal-from-Github)
-- [Extract features](#Extract-features)
-- [Predict](#predict)
-    - [Prepare predict data](#prepare-predict-data)
-    - [Run predict](#run-predict)
-- [Training](#training)
-    - [Prepare training data set](#prepare-training-data-set)
-    - [Train a model](#train-a-model)
-- [Example](#Example)
+- [Install](#Install)
+- [Trained models](#Trained models)
+- [Example data](#Example data)
+- [Usage](#Usage)
 
 ## Install
-### Install Dependencies
-#### Dependencies
-   - [Python 3.*](https://www.python.org/)
-   - Python packages:\
+deepsignal is built on Python3. [tombo](https://github.com/nanoporetech/tombo) is required to re-squiggle the raw signals from nanopore reads before running deepsignal.
+   - Prerequisites:\
+       [Python 3.*](https://www.python.org/)\
+       [tombo](https://github.com/nanoporetech/tombo)
+   - Dependencies:\
        [numpy](http://www.numpy.org/)\
        [h5py](https://github.com/h5py/h5py)\
-       [tombo](https://github.com/nanoporetech/tombo)\
        [statsmodels](https://github.com/statsmodels/statsmodels/)\
        [scikit-learn](https://scikit-learn.org/stable/)\
        [tensorflow v1.8.0](https://www.tensorflow.org/)
 
-We suggest you create a virtual environment to install DeepSignal and its dependencies.
-#### Install using conda
-create a virtual environment using conda:
-```bash
-conda create -n deepsignal python=3.6
-```
-activate virtual environment:
-```bash
-source activate deepsignal
-```
-install the dependencies:
-```bash
-conda install numpy
-conda install h5py
-conda install -c bioconda ont-tombo
-conda install statsmodels
-conda install -c anaconda scikit-learn
-conda install tensorflow_gpu==1.8.0
-```
-or install the CPU-version of tensorflow:
-```bash
-conda install tensorflow==1.8.0
-```
-A virtual environment can also be created using [*virtualenv*](https://github.com/pypa/virtualenv/).
-#### Install using `pip`
-```bash
-# in the environment of python3
-pip install numpy
-pip install h5py
-pip install ont-tombo[full]
-pip install statsmodels
-pip install sklearn
-pip install 'tensorflow==1.8.0'
-```
+#### Create an environment
+A virtual environment is highly recommended to use for the installation of deepsignal and its dependencies.
 
-### Install DeepSignal from Github
-You can download the source code from github:
+A virtual environment can be created and activated as follows by using [conda](https://conda.io/docs/):
+```bash
+conda create -n deepsignalenv python=3.6
+conda activate deepsignalenv
 ```
+The virtual environment can also be created by using [*virtualenv*](https://github.com/pypa/virtualenv/).
+
+#### Install deepsignal
+After creating the environment, download and install deepsignl from github:
+```bash
 git clone https://github.com/bioinfomaticsCSU/deepsignal.git
 cd deepsignal
+python setup.py install
+```
+[tombo](https://github.com/nanoporetech/tombo) is required to be installed in the same environment:
+```bash
+# install using conda
+conda install -c bioconda ont-tombo
+# or install using pip
+pip install ont-tombo[full]
+``` 
+If a GPU-machine is used, the gpu version of tensorflow is required:
+```bash
+# install using conda
+conda install -c anaconda tensorflow-gpu==1.8.0
+# or install using pip
+pip install 'tensorflow-gpu==1.8.0'
 ```
 
+## Trained models
+The models we trained can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/).
 
-## Extract features
-After basecalling, the signal features from fast5 files can be extracted. Please refer to [Example](#Example) for specific pipeline.
+Currently we have trained the following models:
+   * A CpG model trained using HX1 R9.4 1D reads.
 
+## Example data
+The example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/).
+   * The data contain ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
 
-## Predict
-### Prepare predict data
-You can run the file named `generate_testing_data.py` to generate the data to be detected.
-```
-python generate_testing_data.py -i Input_file -o Output_folder -m Max_read_name_length -b Kmer_size -s Signal_length
-```
+## Usage
+### re-squiggle
+Before run deepsignal, the reads must be processed by the *re-squiggle* module of [tombo](https://github.com/nanoporetech/tombo). (If the basecall results are saved as fastq, run the [*tombo proprecess annotate_raw_with_fastqs*](https://nanoporetech.github.io/tombo/resquiggle.html) command before *re-squiggle*.)
 
-### Run predict
-After preparing the predict data, you can run the file named `predict.py` to get the modification prediction.
-```
-python predict.py -i Predict_data_file -o Parameter_model_folder -n model_index -r Output_file -x Kmer_size -y Signal_length -z Max_read_name_length
-```
-
-
-## Train
-If you have the labeled methylated and non-methylated data, you can train a model to achieve better predict performance on this species
-### Prepare training data set
-You can run the file named `generate_training_data.py` to generate the training dataset and validate dataset.
-```
-python generate_training_data.py -i Input_file -o Output_folder -m Max_read_name_length -b Kmer_size -s Signal_length
+For the example data:
+```bash
+# cmd: tombo resquiggle $fast5_dir $reference_fa
+tombo resquiggle fast5s.al GCF_000146045.2_R64_genomic.fna --processes 25 --corrected-group RawGenomeCorrected_001 --basecall-group Basecall_1D_000 --overwrite
 ```
 
-### Train a model
-You can run the file named `train.py` to train a new model.
+### extract features
+Features of targeted sites can be extracted for training or testing.
+
+For the example data:
+deepsignal extract 17-mer-seq and 360-signal features of each CpG motif in the reads by default. Note that the value of *--corrected_group* must be the same as that of *--corrected-group* in tombo.
+```bash
+deepsignal extract --fast5_dir fast5s.al/ --reference_path GCF_000146045.2_R64_genomic.fna --write_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --corrected_group RawGenomeCorrected_001 --nproc 10
 ```
-python train.py -i Train_data_file -v Validate_data_file -o Output_model_file -g Log_file -e Number_of_epoch -x Kmer_size -y Signal_length -z Max_read_name_length
+
+The extracted_features file is a tab-delimited text file in the following format:
+   - chrom: the chromosome name
+   - pos: 0-based position of the targeted base in the chromosome
+   - strand: +/-, the aligned strand of the read to the reference
+   - pos_in_strand:  0-based position of the targeted base in the aligned strand
+   - readname: the read name
+   - read_strand: t/c, template or complement
+   - k_mer: the sequence around the targeted base
+   - signal_means: signal means of each base in the kmer
+   - signal_stds: signal stds of each base in the kmer
+   - signal_lens: lens of each base in the kmer
+   - cent_signals: the central signals of the kmer
+   - methy_label: 0/1, the label of the targeted base, for training
+
+### call modifications
+the extracted features can be used to call modifications as follows (If a GPU-machine is used, please set *--is_gpu* to "yes".):
+```bash
+# the CpGs are called by using the CpG model of HX1 R9.4 1D
+deepsignal call_mods --input_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360/6.ckpt --result_file fast5s.al.CpG.call_mods.tsv --nproc 10 --is_gpu no
 ```
 
+**The modifications can also be called from the fast5 files directly**:
+```bash
+deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360/6.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
+```
 
-## Example
-The models we trained and the example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html).
+The modification_call file is a tab-delimited text file in the following format:
+   - chrom: the chromosome name
+   - pos: 0-based position of the targeted base in the chromosome
+   - strand: +/-, the aligned strand of the read to the reference
+   - pos_in_strand:  0-based position of the targeted base in the aligned strand
+   - readname: the read name
+   - read_strand: t/c, template or complement
+   - prob_0: [0, 1], the probability of the targeted base predicted as 0 (unmethylated)
+   - prob_1: [0, 1], the probability of the targeted base predicted as 1 (methylated)
+   - called_label: 0/1, unmethylated/methylated
+   - seq: the kmer around the targeted base
 
+A modification-frequency file can be generated by the script __*scripts/call_modification_frequency.py*__ with the modification_call file.
+
+<<<<<<< HEAD
 * The model is for CpG detection trained using human HX1 R9.4 1D reads.
 * The example data is ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
+=======
+>>>>>>> release/0.1.0
 
-After downloading, the script *pipeline_demo.sh* can be used to test the data:
+### train
+A new model can be trained as follows:
 ```bash
-chmod +x /path/to/pipeline_demo.sh
-/path/to/pipeline_demo.sh /path/to/fast5_folder /path/to/genome_ref.fa /path/to/model_folder /path/to/output_result
+# need two independent datasets for training and validating
+# use deepsignal train -h/--help for more details
+deepsignal train --train_file /path/to/train_data/file --valid_file /path/to/valid_data/file --model_dir /dir/to/save/the/new/model
 ```
 
+License
+=========
+Copyright (C) 2018 [Jianxin Wang](jxwang@mail.csu.edu.cn), [Feng Luo](luofeng@clemson.edu), [Peng Ni](nipeng@csu.edu.cn), [Neng Huang](huangneng@csu.edu.cn)
 
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+[Jianxin Wang](jxwang@mail.csu.edu.cn), [Peng Ni](nipeng@csu.edu.cn), [Neng Huang](huangneng@csu.edu.cn), 
+School of Information Science and Engineering, Central South University, Changsha 410083, China
+
+[Feng Luo](luofeng@clemson.edu), School of Computing, Clemson University, Clemson, SC 29634, USA

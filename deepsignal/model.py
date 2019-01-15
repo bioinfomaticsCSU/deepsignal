@@ -11,16 +11,16 @@
                    2018/8/6:
 -------------------------------------------------
 """
-__author__ = 'huangneng'
+from __future__ import absolute_import
 
 import numpy as np
-from layers import *
+from .layers import *
 
 vocab_size = 1024
 embedding_size = 128
 
 
-class Model():
+class Model(object):
     def __init__(self, base_num, signal_num, class_num):
         with tf.name_scope('input'):
             self.base_int = tf.placeholder(tf.int32, [None, base_num])

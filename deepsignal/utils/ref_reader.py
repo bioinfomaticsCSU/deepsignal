@@ -1,6 +1,7 @@
-#! /usr/bin/python
-from _utils import complement_seq
-from _utils import get_refloc_of_methysite_in_motif
+from __future__ import absolute_import
+
+from deepsignal.utils.process_utils import complement_seq
+from deepsignal.utils.process_utils import get_refloc_of_methysite_in_motif
 
 
 def get_contig2len(ref_path):
@@ -27,34 +28,6 @@ def get_contigs_of_ref(reffile):
                 contigseq += line.strip()
         contig2seq[contigname] = contigseq
     return contig2seq
-
-
-# --------------get all cpg candidates from reference----------------------------
-def get_reference_cpgsites(reffile):
-    refcontig2seq = get_contigs_of_ref(reffile)
-    contig2cpginfo = {}
-
-    for contig in refcontig2seq.keys():
-        contig2cpginfo[contig] = (get_contig_cpgsites(refcontig2seq[contig]),
-                                  get_contig_cpgsites(complement_seq(refcontig2seq[contig])))
-    return contig2cpginfo
-
-
-def get_contig_cpgsites(contig_str):
-    """
-
-    :param contig_str:
-    :return: key: cpg site position (0-based leftmost position in reference),
-    value: (11-(at most)-mer around the cpg site, positions of each 6mer)
-    """
-    cpgsite2cpginfo = {}
-    contigstrlen = len(contig_str)
-    for i in range(0, contigstrlen-1):
-        if contig_str[i:i+2] == 'CG':
-            mer_11_s, mer_11_e = max(0, i-5), min(contigstrlen, i+5)
-            mer_6_s, mer_6_e = max(0, i-5), min(contigstrlen, i + 5) - 5
-            cpgsite2cpginfo[i] = (contig_str[mer_11_s:mer_11_e+1], [x for x in range(mer_6_s, mer_6_e+1)])
-    return cpgsite2cpginfo
 
 
 class DNAReference:
