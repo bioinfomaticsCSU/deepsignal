@@ -5,8 +5,8 @@ built with **Tensorflow 1.8** and Python 3.
 
 ## Contents
 - [Install](#Install)
-- [Trained models](#Trained models)
-- [Example data](#Example data)
+- [Trained models](#Trained-models)
+- [Example data](#Example-data)
 - [Usage](#Usage)
 
 ## Install
@@ -22,9 +22,7 @@ deepsignal is built on Python3. [tombo](https://github.com/nanoporetech/tombo) i
        [tensorflow v1.8.0](https://www.tensorflow.org/)
 
 #### Create an environment
-A virtual environment is highly recommended to use for the installation of deepsignal and its dependencies.
-
-A virtual environment can be created and activated as follows by using [conda](https://conda.io/docs/):
+We highly recommend to use a virtual environment for the installation of deepsignal and its dependencies. A virtual environment can be created and activated as follows by using [conda](https://conda.io/docs/):
 ```bash
 conda create -n deepsignalenv python=3.6
 conda activate deepsignalenv
@@ -70,34 +68,33 @@ Before run deepsignal, the reads must be processed by the *re-squiggle* module o
 For the example data:
 ```bash
 # cmd: tombo resquiggle $fast5_dir $reference_fa
-tombo resquiggle fast5s.al GCF_000146045.2_R64_genomic.fna --processes 25 --corrected-group RawGenomeCorrected_001 --basecall-group Basecall_1D_000 --overwrite
+tombo resquiggle fast5s.al GCF_000146045.2_R64_genomic.fna --processes 10 --corrected-group RawGenomeCorrected_001 --basecall-group Basecall_1D_000 --overwrite
 ```
 
 ### extract features
 Features of targeted sites can be extracted for training or testing.
 
-For the example data:
-deepsignal extract 17-mer-seq and 360-signal features of each CpG motif in the reads by default. Note that the value of *--corrected_group* must be the same as that of *--corrected-group* in tombo.
+For the example data (deepsignal extracts 17-mer-seq and 360-signal features of each CpG motif in the reads by default. Note that the value of *--corrected_group* must be the same as that of *--corrected-group* in tombo.):
 ```bash
 deepsignal extract --fast5_dir fast5s.al/ --reference_path GCF_000146045.2_R64_genomic.fna --write_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --corrected_group RawGenomeCorrected_001 --nproc 10
 ```
 
 The extracted_features file is a tab-delimited text file in the following format:
-   - chrom: the chromosome name
-   - pos: 0-based position of the targeted base in the chromosome
-   - strand: +/-, the aligned strand of the read to the reference
-   - pos_in_strand:  0-based position of the targeted base in the aligned strand
-   - readname: the read name
-   - read_strand: t/c, template or complement
-   - k_mer: the sequence around the targeted base
-   - signal_means: signal means of each base in the kmer
-   - signal_stds: signal stds of each base in the kmer
-   - signal_lens: lens of each base in the kmer
-   - cent_signals: the central signals of the kmer
-   - methy_label: 0/1, the label of the targeted base, for training
+   - **chrom**: the chromosome name
+   - **pos**:   0-based position of the targeted base in the chromosome
+   - **strand**:    +/-, the aligned strand of the read to the reference
+   - **pos_in_strand**: 0-based position of the targeted base in the aligned strand of the chromosome
+   - **readname**:  the read name
+   - **read_strand**:   t/c, template or complement
+   - **k_mer**: the sequence around the targeted base
+   - **signal_means**:  signal means of each base in the kmer
+   - **signal_stds**:   signal stds of each base in the kmer
+   - **signal_lens**:   lens of each base in the kmer
+   - **cent_signals**:  the central signals of the kmer
+   - **methy_label**:   0/1, the label of the targeted base, for training
 
 ### call modifications
-the extracted features can be used to call modifications as follows (If a GPU-machine is used, please set *--is_gpu* to "yes".):
+The extracted features can be used to call modifications as follows (If a GPU-machine is used, please set *--is_gpu* to "yes".):
 ```bash
 # the CpGs are called by using the CpG model of HX1 R9.4 1D
 deepsignal call_mods --input_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360/6.ckpt --result_file fast5s.al.CpG.call_mods.tsv --nproc 10 --is_gpu no
@@ -109,24 +106,18 @@ deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.huma
 ```
 
 The modification_call file is a tab-delimited text file in the following format:
-   - chrom: the chromosome name
-   - pos: 0-based position of the targeted base in the chromosome
-   - strand: +/-, the aligned strand of the read to the reference
-   - pos_in_strand:  0-based position of the targeted base in the aligned strand
-   - readname: the read name
-   - read_strand: t/c, template or complement
-   - prob_0: [0, 1], the probability of the targeted base predicted as 0 (unmethylated)
-   - prob_1: [0, 1], the probability of the targeted base predicted as 1 (methylated)
-   - called_label: 0/1, unmethylated/methylated
-   - seq: the kmer around the targeted base
+   - **chrom**: the chromosome name
+   - **pos**:   0-based position of the targeted base in the chromosome
+   - **strand**:    +/-, the aligned strand of the read to the reference
+   - **pos_in_strand**: 0-based position of the targeted base in the aligned strand of the chromosome
+   - **readname**:  the read name
+   - **read_strand**:   t/c, template or complement
+   - **prob_0**:    [0, 1], the probability of the targeted base predicted as 0 (unmethylated)
+   - **prob_1**:    [0, 1], the probability of the targeted base predicted as 1 (methylated)
+   - **called_label**:  0/1, unmethylated/methylated
+   - **k_mer**:   the kmer around the targeted base
 
 A modification-frequency file can be generated by the script __*scripts/call_modification_frequency.py*__ with the modification_call file.
-
-<<<<<<< HEAD
-* The model is for CpG detection trained using human HX1 R9.4 1D reads.
-* The example data is ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
-=======
->>>>>>> release/0.1.0
 
 ### train
 A new model can be trained as follows:
