@@ -298,7 +298,7 @@ def _write_featurestr_to_file(write_fp, featurestr_q):
 def _extract_preprocess(fast5_dir, is_recursive, motifs, is_dna, reference_path, f5_batch_num):
 
     fast5_files = get_fast5s(fast5_dir, is_recursive)
-    print("{} fast5 files in total".format(len(fast5_files)))
+    print("{} fast5 files in total..".format(len(fast5_files)))
 
     print("parse the motifs string..")
     motif_seqs = get_motif_seqs(motifs, is_dna)
@@ -342,19 +342,25 @@ def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
     p_w.daemon = True
     p_w.start()
 
+    errornum_sum = 0
+    while True:
+        running = any(p.is_alive() for p in featurestr_procs)
+        while not errornum_q.empty():
+            errornum_sum += errornum_q.get()
+        if not running:
+            break
+
     for p in featurestr_procs:
         p.join()
 
+    print("finishing the write_process..")
     featurestr_q.put("kill")
-    time.sleep(1)
 
     p_w.join()
 
-    errornum_sum = 0
-    while not errornum_q.empty():
-        errornum_sum += errornum_q.get()
-    print("%d of %d failed, extract_features costs %.1f seconds.." % (errornum_sum, len_fast5s,
-                                                                      time.time() - start))
+    print("%d of %d fast5 files failed..\n"
+          "extract_features costs %.1f seconds.." % (errornum_sum, len_fast5s,
+                                                     time.time() - start))
 
 
 def main():

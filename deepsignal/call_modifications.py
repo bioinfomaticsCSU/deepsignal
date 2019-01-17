@@ -54,7 +54,7 @@ def _read_features_file(features_file, features_batch_q, batch_num=512):
             if len(sampleinfo) == batch_num:
                 features_batch_q.put((sampleinfo, kmers, base_means, base_stds,
                                       base_signal_lens, cent_signals, labels))
-                while features_batch_q.qsize() >= queen_size_border:
+                while features_batch_q.qsize() > queen_size_border:
                     time.sleep(time_wait)
                 sampleinfo = []
                 kmers = []
@@ -118,7 +118,7 @@ def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_gr
         errornum_q.put(error)
         for features_batch in features_batches:
             features_batch_q.put(features_batch)
-        while features_batch_q.qsize() >= queen_size_border:
+        while features_batch_q.qsize() > queen_size_border:
             time.sleep(time_wait)
 
 
@@ -267,15 +267,22 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
     p_w.daemon = True
     p_w.start()
 
+    errornum_sum = 0
+    while True:
+        running = any(p.is_alive() for p in pred_str_procs)
+        while not errornum_q.empty():
+            errornum_sum += errornum_q.get()
+        if not running:
+            break
+
     for p in pred_str_procs:
         p.join()
+
+    print("finishing the write_process..")
     pred_str_q.put("kill")
 
     p_w.join()
 
-    errornum_sum = 0
-    while not errornum_q.empty():
-        errornum_sum += errornum_q.get()
     print("%d of %d fast5 files failed.." % (errornum_sum, len_fast5s))
 
 
@@ -316,18 +323,25 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
     p_w.daemon = True
     p_w.start()
 
+    errornum_sum = 0
+    while True:
+        running = any(p.is_alive() for p in features_batch_procs)
+        while not errornum_q.empty():
+            errornum_sum += errornum_q.get()
+        if not running:
+            break
+
     for p in features_batch_procs:
         p.join()
     features_batch_q.put("kill")
 
     p_call_mods_gpu.join()
+
+    print("finishing the write_process..")
     pred_str_q.put("kill")
 
     p_w.join()
 
-    errornum_sum = 0
-    while not errornum_q.empty():
-        errornum_sum += errornum_q.get()
     print("%d of %d fast5 files failed.." % (errornum_sum, len_fast5s))
 
 
@@ -391,6 +405,8 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
 
         for p in predstr_procs:
             p.join()
+
+        print("finishing the write_process..")
         pred_str_q.put("kill")
 
         p_rf.join()
