@@ -22,15 +22,19 @@ deepsignal is built on Python3. [tombo](https://github.com/nanoporetech/tombo) i
        [tensorflow v1.8.0](https://www.tensorflow.org/)
 
 #### Create an environment
-We highly recommend to use a virtual environment for the installation of deepsignal and its dependencies. A virtual environment can be created and activated as follows by using [conda](https://conda.io/docs/):
+We highly recommend to use a virtual environment for the installation of deepsignal and its dependencies. A virtual environment can be created and (de)activated as follows by using [conda](https://conda.io/docs/):
 ```bash
+# create
 conda create -n deepsignalenv python=3.6
+# activate
 conda activate deepsignalenv
+# deactivate
+conda deactivate
 ```
 The virtual environment can also be created by using [*virtualenv*](https://github.com/pypa/virtualenv/).
 
 #### Install deepsignal
-After creating the environment, download and install deepsignal (**lastest version**) from github:
+After creating and activating the environment, download and install deepsignal (**lastest version**) from github:
 ```bash
 git clone https://github.com/bioinfomaticsCSU/deepsignal.git
 cd deepsignal
@@ -48,6 +52,7 @@ conda install -c bioconda ont-tombo
 # or install using pip
 pip install ont-tombo[full]
 ``` 
+
 If a GPU-machine is used, the gpu version of tensorflow is required:
 ```bash
 # install using conda
