@@ -62,14 +62,15 @@ pip install 'tensorflow-gpu==1.8.0'
 ```
 
 ## Trained models
-The models we trained can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), <del>or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/)</del>.
+The models we trained can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), <del>or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/)</del>, or from [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P).
 
 Currently we have trained the following models:
-   * A CpG model trained using HX1 R9.4 1D reads.
+   * _model.CpG.R9.4_1D.human_hx1.bn17.sn360.tar.gz_: A CpG model trained using HX1 R9.4 1D reads.
 
 ## Example data
-The example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), <del>or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/)</del>.
-   * The data contain ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
+The example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), <del>or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/)</del>, or from [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P).
+
+   * _fast5s.sample.tar.gz_: The data contain ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
 
 ## Usage
 ### re-squiggle
