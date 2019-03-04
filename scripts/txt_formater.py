@@ -2,7 +2,7 @@
 for parseing line-based files
 """
 
-key_sep = "_"
+key_sep = "||"
 
 
 class ModRecord:

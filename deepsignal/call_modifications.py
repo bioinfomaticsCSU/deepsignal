@@ -166,6 +166,7 @@ def _call_mods_q(init_learning_rate, class_num, model_path,
         sess.run(tf.local_variables_initializer())
 
         accuracy_list = []
+        count = 0
         while True:
             if os.path.exists(success_file):
                 break
@@ -183,8 +184,9 @@ def _call_mods_q(init_learning_rate, class_num, model_path,
 
             pred_str_q.put(pred_str)
             accuracy_list.append(accuracy)
-        # print("eval end!")
-        print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
+            count += 1
+        # print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
+        print('call_mods process {} ending, proceed {} batches'.format(os.getpid(), count))
 
 
 def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
@@ -203,6 +205,7 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
         sess.run(tf.local_variables_initializer())
 
         accuracy_list = []
+        count = 0
 
         while not fast5s_q.empty():
             try:
@@ -219,7 +222,9 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
 
                 pred_str_q.put(pred_str)
                 accuracy_list.append(accuracy)
-        print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
+                count += 1
+        # print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
+        print('call_mods process {} ending, proceed {} batches'.format(os.getpid(), count))
 
 
 def _write_predstr_to_file(write_fp, predstr_q):

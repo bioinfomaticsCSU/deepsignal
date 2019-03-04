@@ -1,16 +1,26 @@
 #! /usr/bin/env python
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
 
+train_log_txt = 'train.txt'
+valid_log_txt = 'valid.txt'
 
-def draw_log(logdir):
-    '''
+
+def str2bool(v):
+    # susendberg's function
+    return v.lower() in ("yes", "true", "t", "1")
+
+
+def draw_log(logdir, savefig=True):
+    """
     draw the figures of loss accuracy recall precision from train.txt and test.txt
     lines:
         epoch:0, iterid:100, loss:3.545, accuracy:0.501, recall:0.378, precision:0.511
-    '''
-    f_train = open(logdir+'/'+'train.txt', 'r')
-    f_test = open(logdir+'/'+'test.txt', 'r')
+    """
+    f_train = open(logdir+'/'+train_log_txt, 'r')
+    f_test = open(logdir+'/'+valid_log_txt, 'r')
 
     train_loss = []
     train_accuracy = []
@@ -84,11 +94,15 @@ def draw_log(logdir):
     ax_precision.set_title("precision")
 
     plt.subplots_adjust(wspace=0.2, hspace=0.5)
-    plt.show()
+    if savefig:
+        plt.savefig(logdir+'/'+train_log_txt+'.png')
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":
     argv = argparse.ArgumentParser()
     argv.add_argument('-i', '--logdir', required=True)
+    argv.add_argument('--is_save', required=False, default="yes")
     argv = argv.parse_args()
-    draw_log(argv.logdir)
+    draw_log(argv.logdir, str2bool(argv.is_save))

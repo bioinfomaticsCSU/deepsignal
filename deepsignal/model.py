@@ -21,7 +21,7 @@ embedding_size = 128
 
 
 class Model(object):
-    def __init__(self, base_num, signal_num, class_num):
+    def __init__(self, base_num, signal_num, class_num, pos_weight=1.0):
         with tf.name_scope('input'):
             self.base_int = tf.placeholder(tf.int32, [None, base_num])
             self.means = tf.placeholder(tf.float32, [None, base_num])
@@ -72,11 +72,23 @@ class Model(object):
 
         with tf.name_scope("Joint_model"):
             logits = self.join_model(event_model_output, signal_model_output)
+            logits1 = tf.cast(tf.squeeze(tf.slice(logits, [0, 1], [tf.shape(logits)[0], 1])),
+                              tf.float32)
         with tf.name_scope("train_opts"):
             self.activation_logits = tf.nn.sigmoid(logits)
-            self.cost = tf.nn.sigmoid_cross_entropy_with_logits(
-                logits=logits, labels=one_hot_labels)
-            self.loss = tf.reduce_mean(self.cost)
-            self.train_opt = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss,
-                                                                                    global_step=self.global_step)
             self.prediction = tf.argmax(self.activation_logits, axis=1)
+            # self.activation_logits1 = tf.cast(tf.squeeze(tf.slice(self.activation_logits, [0, 1],
+            #                                                       [tf.shape(self.activation_logits)[0], 1])),
+            #                                   tf.float32)
+
+            # self.cost = tf.nn.sigmoid_cross_entropy_with_logits(
+            #     logits=logits, labels=one_hot_labels)
+            # self.loss = tf.reduce_mean(self.cost)
+            # self.train_opt = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss,
+            #                                                                         global_step=self.global_step)
+
+            self.cost_pw = tf.nn.weighted_cross_entropy_with_logits(
+                logits=logits1, targets=tf.cast(self.labels, tf.float32), pos_weight=pos_weight)
+            self.loss_pw = tf.reduce_mean(self.cost_pw)
+            self.train_opt_pw = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss_pw,
+                                                                                       global_step=self.global_step)
