@@ -104,10 +104,11 @@ def main_train(args):
     keep_prob = args.keep_prob
     epoch_num = args.epoch_num
     display_step = args.display_step
+    pos_weight = args.pos_weight
 
     train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
           batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num,
-          display_step)
+          display_step, pos_weight)
 
 
 def main():
@@ -317,6 +318,11 @@ def main():
                           required=False, help="epoch num, default 7")
     st_train.add_argument("--display_step", action="store", default=100, type=int,
                           required=False, help="display step, default 100")
+    st_train.add_argument("--pos_weight", action="store", default=1.0, type=float,
+                          required=False, help="pos_weight in loss function: "
+                                               "tf.nn.weighted_cross_entropy_with_logits, "
+                                               "for imbalanced training samples, default 1. "
+                                               "If |pos samples| : |neg samples| = 1:3, set pos_weight to 3.")
 
     sub_train.set_defaults(func=main_train)
 

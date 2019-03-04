@@ -36,7 +36,8 @@ def _parse_a_line(line):
 
 
 def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
-          batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num, display_step):
+          batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num, display_step,
+          pos_weight):
     train_file = os.path.abspath(train_file)
     valid_file = os.path.abspath(valid_file)
 
@@ -64,7 +65,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
     valid_element = valid_iterator.get_next()
 
     model = Model(base_num=kmer_len,
-                  signal_num=cent_signals_len, class_num=class_num)
+                  signal_num=cent_signals_len, class_num=class_num, pos_weight=pos_weight)
 
     train_log_txt = 'train.txt'
     valid_log_txt = 'valid.txt'
@@ -123,7 +124,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                              model.training: True,
                              model.keep_prob: keep_prob}
                 train_loss, _, train_prediction = sess.run(
-                    [model.loss, model.train_opt, model.prediction], feed_dict=feed_dict)
+                    [model.loss_pw, model.train_opt_pw, model.prediction], feed_dict=feed_dict)
 
                 accu_batch = metrics.accuracy_score(
                     y_true=b_label, y_pred=train_prediction)
@@ -166,7 +167,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                                      model.training: False,
                                      model.keep_prob: 1.0}
                         test_loss, test_prediction = sess.run(
-                            [model.loss, model.prediction], feed_dict=feed_dict)
+                            [model.loss_pw, model.prediction], feed_dict=feed_dict)
 
                         accu_batch = metrics.accuracy_score(
                             y_true=v_label, y_pred=test_prediction)
@@ -257,6 +258,11 @@ def main():
                          required=False, help="epoch num, default 7")
     p_train.add_argument("--display_step", action="store", default=100, type=int,
                          required=False, help="display step, default 100")
+    p_train.add_argument("--pos_weight", action="store", default=1.0, type=float,
+                         required=False, help="pos_weight in loss function: "
+                                              "tf.nn.weighted_cross_entropy_with_logits, "
+                                              "for imbalanced training samples, default 1. "
+                                              "If |pos samples| : |neg samples| = 1:3, set pos_weight to 3.")
 
     args = parser.parse_args()
 
@@ -275,10 +281,11 @@ def main():
     keep_prob = args.keep_prob
     epoch_num = args.epoch_num
     display_step = args.display_step
+    pos_weight = args.pos_weight
 
     train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
           batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num,
-          display_step)
+          display_step, pos_weight)
 
 
 if __name__ == '__main__':
