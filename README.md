@@ -62,13 +62,13 @@ pip install 'tensorflow-gpu==1.8.0'
 ```
 
 ## Trained models
-The models we trained can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), <del>or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/)</del>, or from [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P).
+The models we trained can be downloaded from [csu](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), <del>or [clemson](https://people.cs.clemson.edu/~luofeng/deepsignal/)</del>, or [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P).
 
 Currently we have trained the following models:
    * _model.CpG.R9.4_1D.human_hx1.bn17.sn360.tar.gz_: A CpG model trained using HX1 R9.4 1D reads.
 
 ## Example data
-The example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), <del>or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/)</del>, or from [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P).
+The example data can be downloaded from [csu](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), <del>or [clemson](https://people.cs.clemson.edu/~luofeng/deepsignal/)</del>, or [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P).
 
    * _fast5s.sample.tar.gz_: The data contain ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
 
@@ -108,12 +108,12 @@ The extracted_features file is a tab-delimited text file in the following format
 The extracted features can be used to call modifications as follows (If a GPU-machine is used, please set *--is_gpu* to "yes".):
 ```bash
 # the CpGs are called by using the CpG model of HX1 R9.4 1D
-deepsignal call_mods --input_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360/bn_17.sn_360.epoch_6.ckpt --result_file fast5s.al.CpG.call_mods.tsv --nproc 10 --is_gpu no
+deepsignal call_mods --input_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360/bn_17.sn_360.epoch_7.ckpt --result_file fast5s.al.CpG.call_mods.tsv --nproc 10 --is_gpu no
 ```
 
 **The modifications can also be called from the fast5 files directly**:
 ```bash
-deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360/bn_17.sn_360.epoch_6.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
+deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360/bn_17.sn_360.epoch_7.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
 ```
 
 The modification_call file is a tab-delimited text file in the following format:
