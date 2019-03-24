@@ -77,13 +77,13 @@ class DNAContig:
         return self._name
 
     def get_seq_CpG_sites(self):
-        return get_refloc_of_methysite_in_motif(self._seq, 'CG', 0)
+        return get_refloc_of_methysite_in_motif(self._seq, {'CG'}, 0)
 
     def get_comseq_CpG_sites(self):
-        return get_refloc_of_methysite_in_motif(self._complementseq, 'CG', 0)
+        return get_refloc_of_methysite_in_motif(self._complementseq, {'CG'}, 0)
 
     def get_subseq_start_sites_of_seq(self, subseq, offsetloc=0):
-        return get_refloc_of_methysite_in_motif(self._seq, subseq, offsetloc)
+        return get_refloc_of_methysite_in_motif(self._seq, {subseq}, offsetloc)
 
     def get_subseq_start_sites_of_comseq(self, subseq, offsetloc=0):
-        return get_refloc_of_methysite_in_motif(self._complementseq, subseq, offsetloc)
+        return get_refloc_of_methysite_in_motif(self._complementseq, {subseq}, offsetloc)

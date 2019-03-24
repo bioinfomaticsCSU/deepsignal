@@ -46,19 +46,37 @@ def complement_seq(base_seq, seq_type="DNA"):
     return comseq
 
 
-def get_refloc_of_methysite_in_motif(seqstr, motif='CG', methyloc_in_motif=0):
+# def get_refloc_of_methysite_in_motif(seqstr, motif='CG', methyloc_in_motif=0):
+#     """
+#
+#     :param seqstr:
+#     :param motif:
+#     :param methyloc_in_motif: 0-based
+#     :return:
+#     """
+#     strlen = len(seqstr)
+#     motiflen = len(motif)
+#     sites = []
+#     for i in range(0, strlen - motiflen + 1):
+#         if seqstr[i:i + motiflen] == motif:
+#             sites.append(i+methyloc_in_motif)
+#     return sites
+
+
+def get_refloc_of_methysite_in_motif(seqstr, motifset, methyloc_in_motif=0):
     """
 
     :param seqstr:
-    :param motif:
+    :param motifset:
     :param methyloc_in_motif: 0-based
     :return:
     """
+    motifset = set(motifset)
     strlen = len(seqstr)
-    motiflen = len(motif)
+    motiflen = len(list(motifset)[0])
     sites = []
     for i in range(0, strlen - motiflen + 1):
-        if seqstr[i:i + motiflen] == motif:
+        if seqstr[i:i + motiflen] in motifset:
             sites.append(i+methyloc_in_motif)
     return sites
 
