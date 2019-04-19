@@ -102,13 +102,14 @@ def main_train(args):
     decay_rate = args.decay_rate
     class_num = args.class_num
     keep_prob = args.keep_prob
-    epoch_num = args.epoch_num
+    max_epoch_num = args.max_epoch_num
+    min_epoch_num = args.min_epoch_num
     display_step = args.display_step
     pos_weight = args.pos_weight
 
     train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
-          batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num,
-          display_step, pos_weight)
+          batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
+          min_epoch_num, display_step, pos_weight)
 
 
 def main():
@@ -314,8 +315,10 @@ def main():
                           help="class num, default 2")
     st_train.add_argument("--keep_prob", action="store", default=0.5, type=float,
                           required=False, help="keep prob, default 0.5")
-    st_train.add_argument("--epoch_num", action="store", default=7, type=int,
-                          required=False, help="epoch num, default 7")
+    st_train.add_argument("--max_epoch_num", action="store", default=10, type=int,
+                          required=False, help="max epoch num, default 10")
+    st_train.add_argument("--min_epoch_num", action="store", default=5, type=int,
+                          required=False, help="min epoch num, default 5")
     st_train.add_argument("--display_step", action="store", default=100, type=int,
                           required=False, help="display step, default 100")
     st_train.add_argument("--pos_weight", action="store", default=1.0, type=float,

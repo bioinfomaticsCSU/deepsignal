@@ -36,8 +36,10 @@ def _parse_a_line(line):
 
 
 def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
-          batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num, display_step,
-          pos_weight):
+          batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
+          min_epoch_num, display_step, pos_weight):
+    train_start = time.time()
+
     train_file = os.path.abspath(train_file)
     valid_file = os.path.abspath(valid_file)
 
@@ -85,7 +87,8 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
         # sess.run(model.running_validation_vars_init)
         saver = tf.train.Saver()
 
-        for epoch_id in range(epoch_num):
+        test_accu_best = 0.0
+        for epoch_id in range(max_epoch_num):
             start = time.time()
             if epoch_id == 0 or epoch_id == 1:
                 epoch_learning_rate = learning_rate
@@ -98,6 +101,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
             train_loss_total = []
 
             # validation
+            test_accu_best_ep = 0.0
             test_accuracy_total = []
             test_recall_total = []
             test_precision_total = []
@@ -124,7 +128,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                              model.training: True,
                              model.keep_prob: keep_prob}
                 train_loss, _, train_prediction = sess.run(
-                    [model.loss_pw, model.train_opt_pw, model.prediction], feed_dict=feed_dict)
+                    [model.cost_pw, model.train_opt_pw, model.prediction], feed_dict=feed_dict)
 
                 accu_batch = metrics.accuracy_score(
                     y_true=b_label, y_pred=train_prediction)
@@ -167,7 +171,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                                      model.training: False,
                                      model.keep_prob: 1.0}
                         test_loss, test_prediction = sess.run(
-                            [model.loss_pw, model.prediction], feed_dict=feed_dict)
+                            [model.cost_pw, model.prediction], feed_dict=feed_dict)
 
                         accu_batch = metrics.accuracy_score(
                             y_true=v_label, y_pred=test_prediction)
@@ -190,13 +194,21 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                         valid_log.write(t_log)
                         valid_log.close()
 
+                    if np.mean(test_accuracy_total) > test_accu_best_ep:
+                        test_accu_best_ep = np.mean(test_accuracy_total)
+                        if test_accu_best_ep > test_accu_best:
+                            saver.save(sess, "/".join([model_dir,
+                                                       "bn_" + str(kmer_len) + ".sn_" + str(cent_signals_len) +
+                                                       ".epoch_" + str(epoch_id) + '.ckpt']))
+
                     end = time.time()
-                    line = "Epoch: %d, iterid: %d\n train_loss: %.3f valid_loss: %.3f train_accuracy: %.3f " \
-                           "valid_accuracy: %.3f time_cost: %.2f" % (epoch_id, iter_id, np.mean(train_loss_total),
-                                                                     np.mean(test_loss_total),
-                                                                     np.mean(train_accuracy_total),
-                                                                     np.mean(test_accuracy_total),
-                                                                     end - start)
+                    line = "epoch: %d, iterid: %d\n train_loss: %.3f, valid_loss: %.3f, train_accuracy: %.3f, " \
+                           "valid_accuracy: %.3f, curr_epoch_best_accuracy: %.3f, " \
+                           "time_cost: %.2f" % (epoch_id, iter_id, np.mean(train_loss_total),
+                                                np.mean(test_loss_total),
+                                                np.mean(train_accuracy_total),
+                                                np.mean(test_accuracy_total),
+                                                test_accu_best_ep, end - start)
                     sys.stdout.write(line + "\n")
                     sys.stdout.flush()
 
@@ -213,9 +225,23 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                     test_loss_total = []
 
                     start = time.time()
-                    saver.save(sess, "/".join([model_dir,
-                                               "bn_" + str(kmer_len) + ".sn_" + str(cent_signals_len) +
-                                               ".epoch_" + str(epoch_id) + '.ckpt']))
+
+            if test_accu_best_ep > test_accu_best:
+                test_accu_best = test_accu_best_ep
+                sys.stdout.write("================ epoch %d best accuracy: %.3f, "
+                                 "best accuracy: %.3f\n" % (epoch_id,
+                                                            test_accu_best_ep,
+                                                            test_accu_best))
+                sys.stdout.flush()
+            else:
+                sys.stdout.write("================ epoch %d best accuracy: %.3f, "
+                                 "best accuracy: %.3f\n" % (epoch_id,
+                                                            test_accu_best_ep,
+                                                            test_accu_best))
+                sys.stdout.flush()
+                if epoch_id >= min_epoch_num - 1:
+                    break
+    sys.stdout.write("training finished, costs %.1f seconds..\n" % (time.time() - train_start))
 
 
 def main():
@@ -254,8 +280,10 @@ def main():
                          help="class num, default 2")
     p_train.add_argument("--keep_prob", action="store", default=0.5, type=float,
                          required=False, help="keep prob, default 0.5")
-    p_train.add_argument("--epoch_num", action="store", default=7, type=int,
-                         required=False, help="epoch num, default 7")
+    p_train.add_argument("--max_epoch_num", action="store", default=10, type=int,
+                         required=False, help="max epoch num, default 10")
+    p_train.add_argument("--min_epoch_num", action="store", default=5, type=int,
+                         required=False, help="min epoch num, default 5")
     p_train.add_argument("--display_step", action="store", default=100, type=int,
                          required=False, help="display step, default 100")
     p_train.add_argument("--pos_weight", action="store", default=1.0, type=float,
@@ -279,13 +307,14 @@ def main():
     decay_rate = args.decay_rate
     class_num = args.class_num
     keep_prob = args.keep_prob
-    epoch_num = args.epoch_num
+    max_epoch_num = args.max_epoch_num
+    min_epoch_num = args.min_epoch_num
     display_step = args.display_step
     pos_weight = args.pos_weight
 
     train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
-          batch_size, learning_rate, decay_rate, class_num, keep_prob, epoch_num,
-          display_step, pos_weight)
+          batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
+          min_epoch_num, display_step, pos_weight)
 
 
 if __name__ == '__main__':
