@@ -195,9 +195,10 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
             else:
                 chrom_start_in_alignstrand = chromlen - (chrom_start + len(genomeseq))
 
-            tsite_locs = []
-            for mseq in motif_seqs:
-                tsite_locs += get_refloc_of_methysite_in_motif(genomeseq, mseq, methyloc)
+            # tsite_locs = []
+            # for mseq in motif_seqs:
+            #     tsite_locs += get_refloc_of_methysite_in_motif(genomeseq, mseq, methyloc)
+            tsite_locs = get_refloc_of_methysite_in_motif(genomeseq, set(motif_seqs), methyloc)
 
             if kmer_len % 2 == 0:
                 raise ValueError("kmer_len must be odd")

@@ -5,6 +5,10 @@ deepsignal
 Documentation
 -------------
 
+v0.1.5
+-------------
+normalize probs before output
+
 v0.1.4
 -------------
 change the loss function to weighted_cross_entropy_with_logits,

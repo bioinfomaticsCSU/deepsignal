@@ -144,8 +144,11 @@ def _call_mods(features_batch, tf_sess, model, init_learning_rate):
     pred_str = []
     for idx in range(labels.shape[0]):
         # chromosome, pos, strand, pos_in_strand, read_name, read_strand, prob_0, prob_1, called_label, seq
-        pred_str.append("\t".join([sampleinfo[idx], str(activation_logits[idx][0]),
-                                   str(activation_logits[idx][1]), str(prediction[idx]),
+        prob_0, prob_1 = activation_logits[idx][0], activation_logits[idx][1]
+        prob_0_norm = prob_0 / (prob_0 + prob_1)
+        prob_1_norm = prob_1 / (prob_0 + prob_1)
+        pred_str.append("\t".join([sampleinfo[idx], str(prob_0_norm),
+                                   str(prob_1_norm), str(prediction[idx]),
                                    ''.join([code2base_dna[x] for x in kmers[idx]])]))
 
     return pred_str, accuracy
