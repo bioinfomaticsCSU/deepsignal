@@ -10,10 +10,10 @@ import tensorflow as tf
 import argparse
 import time
 import os
-import shutil
 import sys
 import numpy as np
 from sklearn import metrics
+import re
 
 from .model import Model
 from .utils.process_utils import base2code_dna
@@ -43,16 +43,36 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
     train_file = os.path.abspath(train_file)
     valid_file = os.path.abspath(valid_file)
 
+    model_regex = re.compile(r"bn_" + str(kmer_len) + "\.sn_" + str(cent_signals_len) +
+                             "\.epoch_\d+\.ckpt*")
     if os.path.exists(model_dir):
-        shutil.rmtree(model_dir)
-        print('the previous model directory deleted...')
-    os.mkdir(model_dir)
+        # shutil.rmtree(model_dir)
+        count = 0
+        for mfile in os.listdir(model_dir):
+            if model_regex.match(mfile) or mfile == "checkpoint":
+                os.remove(model_dir + "/" + mfile)
+                count += 1
+        if count >= 1:
+            print('the previous model ({} files) in model_directory deleted...'.format(count))
+    else:
+        os.mkdir(model_dir)
 
+    train_log_txt = 'train.txt'
+    valid_log_txt = 'valid.txt'
     if log_dir is not None:
         if os.path.exists(log_dir):
-            shutil.rmtree(log_dir)
-            print('the previous log directory deleted...')
-        os.mkdir(log_dir)
+            # shutil.rmtree(log_dir)
+            count = 0
+            if os.path.exists(log_dir + '/' + train_log_txt):
+                os.remove(log_dir + '/' + train_log_txt)
+                count += 1
+            if os.path.exists(log_dir + '/' + valid_log_txt):
+                os.remove(log_dir + '/' + valid_log_txt)
+                count += 1
+            if count >= 1:
+                print('the previous log file ({} files) in log_directory deleted...'.format(count))
+        else:
+            os.mkdir(log_dir)
 
     # train dataset
     dataset = tf.data.TextLineDataset([train_file]).map(_parse_a_line)
@@ -68,14 +88,6 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
 
     model = Model(base_num=kmer_len,
                   signal_num=cent_signals_len, class_num=class_num, pos_weight=pos_weight)
-
-    train_log_txt = 'train.txt'
-    valid_log_txt = 'valid.txt'
-    if log_dir is not None:
-        if os.path.exists(log_dir + '/' + train_log_txt):
-            os.remove(log_dir + '/' + train_log_txt)
-        if os.path.exists(log_dir + '/' + valid_log_txt):
-            os.remove(log_dir + '/' + valid_log_txt)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -198,8 +210,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                         test_accu_best_ep = np.mean(test_accuracy_total)
                         if test_accu_best_ep > test_accu_best:
                             saver.save(sess, "/".join([model_dir,
-                                                       "bn_" + str(kmer_len) + ".sn_" + str(cent_signals_len) +
-                                                       ".epoch_" + str(epoch_id) + '.ckpt']))
+                                                       ]))
 
                     end = time.time()
                     line = "epoch: %d, iterid: %d\n train_loss: %.3f, valid_loss: %.3f, train_accuracy: %.3f, " \
@@ -297,8 +308,8 @@ def main():
     train_file = args.train_file
     valid_file = args.valid_file
 
-    model_dir = args.model_dir
-    log_dir = args.log_dir
+    model_dir = os.path.abspath(args.model_dir)
+    log_dir = os.path.abspath(args.log_dir)
 
     kmer_len = args.kmer_len
     cent_signals_len = args.cent_signals_len
