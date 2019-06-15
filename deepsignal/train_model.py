@@ -45,6 +45,8 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
 
     model_regex = re.compile(r"bn_" + str(kmer_len) + "\.sn_" + str(cent_signals_len) +
                              "\.epoch_\d+\.ckpt*")
+    model_prefix = "bn_" + str(kmer_len) + ".sn_" + str(cent_signals_len) + ".epoch_"
+    model_suffix = '.ckpt'
     if os.path.exists(model_dir):
         # shutil.rmtree(model_dir)
         count = 0
@@ -210,7 +212,7 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                         test_accu_best_ep = np.mean(test_accuracy_total)
                         if test_accu_best_ep > test_accu_best:
                             saver.save(sess, "/".join([model_dir,
-                                                       ]))
+                                                       model_prefix + str(epoch_id) + model_suffix]))
 
                     end = time.time()
                     line = "epoch: %d, iterid: %d\n train_loss: %.3f, valid_loss: %.3f, train_accuracy: %.3f, " \

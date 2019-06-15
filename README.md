@@ -77,7 +77,7 @@ The example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/
 Before run deepsignal, the reads must be processed by the *re-squiggle* module of [tombo](https://github.com/nanoporetech/tombo).
 
 Note:
-- If the fast5 files are in multi-read FAST5 format, please use _multi_to_single_fast5_ command from the [ont_fast5_api package](https://github.com/nanoporetech/ont_fast5_api) to conver the fast5 files first (Ref to [issue #173](https://github.com/nanoporetech/tombo/issues/173) in  [tombo](https://github.com/nanoporetech/tombo)).
+- If the fast5 files are in multi-read FAST5 format, please use _multi_to_single_fast5_ command from the [ont_fast5_api package](https://github.com/nanoporetech/ont_fast5_api) to convert the fast5 files first (Ref to [issue #173](https://github.com/nanoporetech/tombo/issues/173) in  [tombo](https://github.com/nanoporetech/tombo)).
 - If the basecall results are saved as fastq, run the [*tombo proprecess annotate_raw_with_fastqs*](https://nanoporetech.github.io/tombo/resquiggle.html) command before *re-squiggle*.
 
 For the example data:
