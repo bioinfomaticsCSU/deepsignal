@@ -40,13 +40,15 @@ def main_extraction(args):
     motifs = args.motifs
     mod_loc = args.mod_loc
     methy_label = args.methy_label
+    position_file = args.positions
 
     nproc = args.nproc
     f5_batch_num = args.f5_batch_num
 
     extract_features(fast5_dir, is_recursive, reference_path, is_dna,
                      f5_batch_num, write_path, nproc, corrected_group, basecall_subgroup,
-                     normalize_method, motifs, mod_loc, kmer_len, cent_signals_num, methy_label)
+                     normalize_method, motifs, mod_loc, kmer_len, cent_signals_num, methy_label,
+                     position_file)
 
 
 def main_call_mods(args):
@@ -78,9 +80,10 @@ def main_call_mods(args):
     mod_loc = args.mod_loc
     methy_label = args.methy_label
     f5_batch_num = args.f5_batch_num
+    position_file = args.positions
 
     f5_args = (is_recursive, corrected_group, basecall_subgroup, reference_path, is_dna,
-               normalize_method, motifs, mod_loc, methy_label, f5_batch_num)
+               normalize_method, motifs, mod_loc, methy_label, f5_batch_num, position_file)
 
     call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
               batch_size, learning_rate, class_num, nproc, is_gpu, f5_args)
@@ -188,6 +191,10 @@ def main():
     #                            required=False, default=None,
     #                            help="region of interest, e.g.: chr1:0-10000, default None, "
     #                                 "for the whole region")
+    se_extraction.add_argument("--positions", action="store", type=str,
+                               required=False, default=None,
+                               help="file with a list of positions interested (must be formatted as tab-separated file"
+                                    " with chromosome, position (in fwd strand), and strand. default None")
 
     se_output = sub_extract.add_argument_group("OUTPUT")
     se_output.add_argument("--write_path", "-o", action="store",
@@ -270,6 +277,10 @@ def main():
     sc_f5.add_argument("--f5_batch_num", action="store", type=int, default=100,
                        required=False,
                        help="number of files to be processed by each process one time, default 100")
+    sc_f5.add_argument("--positions", action="store", type=str,
+                       required=False, default=None,
+                       help="file with a list of positions interested (must be formatted as tab-separated file"
+                            " with chromosome, position (in fwd strand), and strand. default None")
 
     sub_call_mods.add_argument("--nproc", "-p", action="store", type=int, default=1,
                                required=False, help="number of processes to be used, default 1.")

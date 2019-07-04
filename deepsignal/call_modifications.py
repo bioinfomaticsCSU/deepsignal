@@ -71,10 +71,10 @@ def _read_features_file(features_file, features_batch_q, batch_num=512):
 
 def _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup, normalize_method,
                                motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
-                               methy_label, batch_num=512):
+                               methy_label, batch_num=512, positions=None):
     features_list, error = _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_method,
                                              motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
-                                             methy_label)
+                                             methy_label, positions)
     features_batches = []
     for i in np.arange(0, len(features_list), batch_num):
         sampleinfo = []  # contains: chromosome, pos, strand, pos_in_strand, read_name, read_strand
@@ -105,7 +105,7 @@ def _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup, norma
 def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_group,
                             basecall_subgroup, normalize_method,
                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
-                            methy_label, batch_num):
+                            methy_label, batch_num, positions):
     while not fast5s_q.empty():
         try:
             fast5s = fast5s_q.get()
@@ -114,7 +114,7 @@ def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_gr
         features_batches, error = _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup,
                                                              normalize_method, motif_seqs, methyloc,
                                                              chrom2len, kmer_len, raw_signals_len, methy_label,
-                                                             batch_num)
+                                                             batch_num, positions)
         errornum_q.put(error)
         for features_batch in features_batches:
             features_batch_q.put(features_batch)
@@ -196,7 +196,8 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
                             corrected_group, basecall_subgroup, normalize_method,
                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
                             methy_label, batch_num,
-                            init_learning_rate, class_num, model_path):
+                            init_learning_rate, class_num, model_path,
+                            positions):
     model = Model(base_num=kmer_len,
                   signal_num=raw_signals_len, class_num=class_num)
 
@@ -218,7 +219,7 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
             features_batches, error = _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup,
                                                                  normalize_method, motif_seqs, methyloc,
                                                                  chrom2len, kmer_len, raw_signals_len, methy_label,
-                                                                 batch_num)
+                                                                 batch_num, positions)
             errornum_q.put(error)
             for features_batch in features_batches:
                 pred_str, accuracy = _call_mods(features_batch, sess, model, init_learning_rate)
@@ -249,7 +250,7 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                corrected_group, basecall_subgroup, normalize_method,
                                mod_loc, kmer_len, cent_signals_len, methy_label, batch_size,
                                learning_rate, class_num, model_path, success_file, result_file,
-                               nproc):
+                               nproc, positions):
 
     errornum_q = mp.Queue()
 
@@ -265,7 +266,7 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                                              normalize_method, motif_seqs, mod_loc,
                                                              chrom2len, kmer_len, cent_signals_len,
                                                              methy_label, batch_size, learning_rate,
-                                                             class_num, model_path))
+                                                             class_num, model_path, positions))
         p.daemon = True
         p.start()
         pred_str_procs.append(p)
@@ -298,7 +299,7 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                corrected_group, basecall_subgroup, normalize_method,
                                mod_loc, kmer_len, cent_signals_len, methy_label, batch_size,
                                learning_rate, class_num, model_path, success_file, result_file,
-                               nproc):
+                               nproc, positions):
     features_batch_q = mp.Queue()
     errornum_q = mp.Queue()
 
@@ -315,7 +316,7 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                                              corrected_group, basecall_subgroup,
                                                              normalize_method, motif_seqs, mod_loc,
                                                              chrom2len, kmer_len, cent_signals_len,
-                                                             methy_label, batch_size))
+                                                             methy_label, batch_size, positions))
         p.daemon = True
         p.start()
         features_batch_procs.append(p)
@@ -365,21 +366,23 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
 
     if os.path.isdir(input_path):
         is_recursive, corrected_group, basecall_subgroup, reference_path, is_dna, \
-            normalize_method, motifs, mod_loc, methy_label, f5_batch_num = f5_args
+            normalize_method, motifs, mod_loc, methy_label, f5_batch_num, position_file = f5_args
 
-        motif_seqs, chrom2len, fast5s_q, len_fast5s = _extract_preprocess(input_path, is_recursive, motifs,
-                                                                          is_dna, reference_path, f5_batch_num)
+        motif_seqs, chrom2len, fast5s_q, len_fast5s, positions = _extract_preprocess(input_path, is_recursive,
+                                                                                     motifs, is_dna,
+                                                                                     reference_path, f5_batch_num,
+                                                                                     position_file)
 
         if is_gpu:
             _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s, corrected_group,
                                        basecall_subgroup, normalize_method, mod_loc, kmer_len, cent_signals_len,
                                        methy_label, batch_size, learning_rate, class_num, model_path, success_file,
-                                       result_file, nproc)
+                                       result_file, nproc, positions)
         else:
             _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s, corrected_group,
                                        basecall_subgroup, normalize_method, mod_loc, kmer_len, cent_signals_len,
                                        methy_label, batch_size, learning_rate, class_num, model_path, success_file,
-                                       result_file, nproc)
+                                       result_file, nproc, positions)
 
     else:
         features_batch_q = mp.Queue()
@@ -495,6 +498,10 @@ def main():
     p_f5.add_argument("--f5_batch_num", action="store", type=int, default=100,
                       required=False,
                       help="number of files to be processed by each process one time, default 100")
+    p_f5.add_argument("--positions", action="store", type=str,
+                      required=False, default=None,
+                      help="file with a list of positions interested (must be formatted as tab-separated file"
+                           " with chromosome, position (in fwd strand), and strand. default None")
 
     parser.add_argument("--nproc", "-p", action="store", type=int, default=1,
                         required=False, help="number of processes to be used, default 1.")
@@ -532,9 +539,10 @@ def main():
     mod_loc = args.mod_loc
     methy_label = args.methy_label
     f5_batch_num = args.f5_batch_num
+    position_file = args.positions
 
     f5_args = (is_recursive, corrected_group, basecall_subgroup, reference_path, is_dna,
-               normalize_method, motifs, mod_loc, methy_label, f5_batch_num)
+               normalize_method, motifs, mod_loc, methy_label, f5_batch_num, position_file)
 
     call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
               batch_size, learning_rate, class_num, nproc, is_gpu, f5_args)

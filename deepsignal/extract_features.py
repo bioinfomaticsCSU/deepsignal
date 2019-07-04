@@ -27,6 +27,8 @@ queen_size_border = 2000
 time_wait = 5
 # MAX_LEGAL_SIGNAL_NUM = 800  # 800 only for 17-mer
 
+key_sep = "||"
+
 
 def _get_label_raw(fast5_fn, correct_group, correct_subgroup):
     try:
@@ -174,7 +176,7 @@ def _get_central_signals(signals_list, rawsignal_num=360):
 
 def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_method,
                       motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
-                      methy_label):
+                      methy_label, positions):
     features_list = []
     error = 0
     for fast5_fp in fast5s:
@@ -213,6 +215,9 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
                         pos = chromlen - 1 - loc_in_ref
                     else:
                         pos = loc_in_ref
+
+                    if positions is not None and key_sep.join([chrom, str(pos), alignstrand]) not in positions:
+                        continue
 
                     k_mer = genomeseq[(loc_in_read - num_bases):(loc_in_read + num_bases + 1)]
                     k_signals = signal_list[(loc_in_read - num_bases):(loc_in_read + num_bases + 1)]
@@ -262,7 +267,8 @@ def _fill_files_queue(fast5s_q, fast5_files, batch_size):
 
 def get_a_batch_features_str(fast5s_q, featurestr_q, errornum_q,
                              corrected_group, basecall_subgroup, normalize_method,
-                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len, methy_label):
+                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len, methy_label,
+                             positions):
     while not fast5s_q.empty():
         try:
             fast5s = fast5s_q.get()
@@ -270,7 +276,8 @@ def get_a_batch_features_str(fast5s_q, featurestr_q, errornum_q,
             break
         features_list, error_num = _extract_features(fast5s, corrected_group, basecall_subgroup,
                                                      normalize_method, motif_seqs, methyloc,
-                                                     chrom2len, kmer_len, raw_signals_len, methy_label)
+                                                     chrom2len, kmer_len, raw_signals_len, methy_label,
+                                                     positions)
         features_str = []
         for features in features_list:
             features_str.append(_features_to_str(features))
@@ -296,7 +303,17 @@ def _write_featurestr_to_file(write_fp, featurestr_q):
             wf.flush()
 
 
-def _extract_preprocess(fast5_dir, is_recursive, motifs, is_dna, reference_path, f5_batch_num):
+def _read_position_file(position_file):
+    postions = set()
+    with open(position_file, 'r') as rf:
+        for line in rf:
+            words = line.strip().split("\t")
+            postions.add(key_sep.join(words[:3]))
+    return postions
+
+
+def _extract_preprocess(fast5_dir, is_recursive, motifs, is_dna, reference_path, f5_batch_num,
+                        position_file):
 
     fast5_files = get_fast5s(fast5_dir, is_recursive)
     print("{} fast5 files in total..".format(len(fast5_files)))
@@ -307,20 +324,27 @@ def _extract_preprocess(fast5_dir, is_recursive, motifs, is_dna, reference_path,
     print("read genome reference file..")
     chrom2len = get_contig2len(reference_path)
 
+    print("read position file if it is None..")
+    positions = None
+    if position_file is not None:
+        positions = _read_position_file(position_file)
+
     fast5s_q = mp.Queue()
     _fill_files_queue(fast5s_q, fast5_files, f5_batch_num)
 
-    return motif_seqs, chrom2len, fast5s_q, len(fast5_files)
+    return motif_seqs, chrom2len, fast5s_q, len(fast5_files), positions
 
 
 def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
                      batch_size, write_fp, nproc,
                      corrected_group, basecall_subgroup, normalize_method,
-                     motifs, methyloc, kmer_len, raw_signals_len, methy_label):
+                     motifs, methyloc, kmer_len, raw_signals_len, methy_label,
+                     position_file):
     start = time.time()
 
-    motif_seqs, chrom2len, fast5s_q, len_fast5s = _extract_preprocess(fast5_dir, is_recursive, motifs,
-                                                                      is_dna, reference_path, batch_size)
+    motif_seqs, chrom2len, fast5s_q, len_fast5s, positions = _extract_preprocess(fast5_dir, is_recursive,
+                                                                                 motifs, is_dna, reference_path,
+                                                                                 batch_size, position_file)
 
     featurestr_q = mp.Queue()
     errornum_q = mp.Queue()
@@ -333,7 +357,7 @@ def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
                                                               corrected_group, basecall_subgroup,
                                                               normalize_method, motif_seqs,
                                                               methyloc, chrom2len, kmer_len, raw_signals_len,
-                                                              methy_label))
+                                                              methy_label, positions))
         p.daemon = True
         p.start()
         featurestr_procs.append(p)
@@ -424,6 +448,10 @@ def main():
     #                            required=False, default=None,
     #                            help="region of interest, e.g.: chr1:0-10000, default None, "
     #                                 "for the whole region")
+    ep_extraction.add_argument("--positions", action="store", type=str,
+                               required=False, default=None,
+                               help="file with a list of positions interested (must be formatted as tab-separated file"
+                                    " with chromosome, position (in fwd strand), and strand. default None")
 
     ep_output = extraction_parser.add_argument_group("OUTPUT")
     ep_output.add_argument("--write_path", "-o", action="store",
@@ -455,13 +483,15 @@ def main():
     motifs = extraction_args.motifs
     mod_loc = extraction_args.mod_loc
     methy_label = extraction_args.methy_label
+    position_file = extraction_args.positions
 
     nproc = extraction_args.nproc
     f5_batch_num = extraction_args.f5_batch_num
 
     extract_features(fast5_dir, is_recursive, reference_path, is_dna,
                      f5_batch_num, write_path, nproc, corrected_group, basecall_subgroup,
-                     normalize_method, motifs, mod_loc, kmer_len, cent_signals_num, methy_label)
+                     normalize_method, motifs, mod_loc, kmer_len, cent_signals_num, methy_label,
+                     position_file)
 
 
 if __name__ == '__main__':
