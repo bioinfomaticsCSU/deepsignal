@@ -426,7 +426,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
 
     if os.path.exists(success_file):
         os.remove(success_file)
-    print("call_mods costs %.1f seconds.." % (time.time() - start))
+    print("call_mods costs %.2f seconds.." % (time.time() - start))
 
 
 def main():
@@ -501,7 +501,9 @@ def main():
     p_f5.add_argument("--positions", action="store", type=str,
                       required=False, default=None,
                       help="file with a list of positions interested (must be formatted as tab-separated file"
-                           " with chromosome, position (in fwd strand), and strand. default None")
+                           " with chromosome, position (in fwd strand), and strand. motifs/mod_loc are still "
+                           "need to be set. --positions is used to narrow down the range of the trageted "
+                           "motif locs. default None")
 
     parser.add_argument("--nproc", "-p", action="store", type=int, default=1,
                         required=False, help="number of processes to be used, default 1.")

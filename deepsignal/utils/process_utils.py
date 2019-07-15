@@ -2,8 +2,14 @@ from __future__ import absolute_import
 import fnmatch
 import os
 
-basepairs = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N'}
-basepairs_rna = {'A': 'U', 'C': 'G', 'G': 'C', 'U': 'A', 'N': 'N'}
+basepairs = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N',
+             'W': 'W', 'S': 'S', 'M': 'K', 'K': 'M', 'R': 'Y',
+             'Y': 'R', 'B': 'V', 'V': 'B', 'D': 'H', 'H': "D",
+             'Z': 'Z'}
+basepairs_rna = {'A': 'U', 'C': 'G', 'G': 'C', 'U': 'A', 'N': 'N',
+                 'W': 'W', 'S': 'S', 'M': 'K', 'K': 'M', 'R': 'Y',
+                 'Y': 'R', 'B': 'V', 'V': 'B', 'D': 'H', 'H': "D",
+                 'Z': 'Z'}
 
 base2code_dna = {'A': 0, 'C': 1, 'G': 2, 'T': 3, 'N': 4}
 code2base_dna = {0: 'A', 1: 'C', 2: 'G', 3: 'T', 4: 'N'}
@@ -31,14 +37,20 @@ def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
 
+def _alphabet(letter, dbasepairs):
+    if letter in dbasepairs.keys():
+        return dbasepairs[letter]
+    return 'N'
+
+
 def complement_seq(base_seq, seq_type="DNA"):
     rbase_seq = base_seq[::-1]
     comseq = ''
     try:
         if seq_type == "DNA":
-            comseq = ''.join([basepairs[x] for x in rbase_seq])
+            comseq = ''.join([_alphabet(x, basepairs) for x in rbase_seq])
         elif seq_type == "RNA":
-            comseq = ''.join([basepairs_rna[x] for x in rbase_seq])
+            comseq = ''.join([_alphabet(x, basepairs_rna) for x in rbase_seq])
         else:
             raise ValueError("the seq_type must be DNA or RNA")
     except Exception:

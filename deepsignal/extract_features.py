@@ -216,7 +216,7 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
                     else:
                         pos = loc_in_ref
 
-                    if positions is not None and key_sep.join([chrom, str(pos), alignstrand]) not in positions:
+                    if (positions is not None) and (key_sep.join([chrom, str(pos), alignstrand]) not in positions):
                         continue
 
                     k_mer = genomeseq[(loc_in_read - num_bases):(loc_in_read + num_bases + 1)]
@@ -324,7 +324,7 @@ def _extract_preprocess(fast5_dir, is_recursive, motifs, is_dna, reference_path,
     print("read genome reference file..")
     chrom2len = get_contig2len(reference_path)
 
-    print("read position file if it is None..")
+    print("read position file if it is not None..")
     positions = None
     if position_file is not None:
         positions = _read_position_file(position_file)
@@ -451,7 +451,9 @@ def main():
     ep_extraction.add_argument("--positions", action="store", type=str,
                                required=False, default=None,
                                help="file with a list of positions interested (must be formatted as tab-separated file"
-                                    " with chromosome, position (in fwd strand), and strand. default None")
+                                    " with chromosome, position (in fwd strand), and strand. motifs/mod_loc are still "
+                                    "need to be set. --positions is used to narrow down the range of the trageted "
+                                    "motif locs. default None")
 
     ep_output = extraction_parser.add_argument_group("OUTPUT")
     ep_output.add_argument("--write_path", "-o", action="store",

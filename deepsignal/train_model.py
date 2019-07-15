@@ -217,11 +217,11 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
                     end = time.time()
                     line = "epoch: %d, iterid: %d\n train_loss: %.3f, valid_loss: %.3f, train_accuracy: %.3f, " \
                            "valid_accuracy: %.3f, curr_epoch_best_accuracy: %.3f, " \
-                           "time_cost: %.2f" % (epoch_id, iter_id, np.mean(train_loss_total),
-                                                np.mean(test_loss_total),
-                                                np.mean(train_accuracy_total),
-                                                np.mean(test_accuracy_total),
-                                                test_accu_best_ep, end - start)
+                           "time_cost: %.2fs" % (epoch_id, iter_id, np.mean(train_loss_total),
+                                                 np.mean(test_loss_total),
+                                                 np.mean(train_accuracy_total),
+                                                 np.mean(test_accuracy_total),
+                                                 test_accu_best_ep, end - start)
                     sys.stdout.write(line + "\n")
                     sys.stdout.flush()
 

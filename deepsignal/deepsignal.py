@@ -280,7 +280,9 @@ def main():
     sc_f5.add_argument("--positions", action="store", type=str,
                        required=False, default=None,
                        help="file with a list of positions interested (must be formatted as tab-separated file"
-                            " with chromosome, position (in fwd strand), and strand. default None")
+                            " with chromosome, position (in fwd strand), and strand. motifs/mod_loc are still "
+                            "need to be set. --positions is used to narrow down the range of the trageted "
+                            "motif locs. default None")
 
     sub_call_mods.add_argument("--nproc", "-p", action="store", type=int, default=1,
                                required=False, help="number of processes to be used, default 1.")
