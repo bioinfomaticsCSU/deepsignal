@@ -5,6 +5,10 @@ deepsignal
 Documentation
 -------------
 
+v0.1.6
+-------------
+add option --positions in extract_features module,
+
 v0.1.5
 -------------
 normalize probs before output

@@ -66,6 +66,7 @@ The models we trained can be downloaded from [here](http://bioinformatics.csu.ed
 
 Currently we have trained the following models:
    * _model.CpG.R9.4_1D.human_hx1.bn17.sn360.tar.gz_: A CpG model trained using HX1 R9.4 1D reads.
+   * _model.GATC.R9_2D.tem.puc19.bn17.sn360.tar.gz_: A G*A*TC model trained using pUC19 R9 2D template reads (only in [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P) now).
 
 ## Example data
 The example data can be downloaded from [here](http://bioinformatics.csu.edu.cn/resources/softs/nipeng/DeepSignal/index.html), or [here](https://people.cs.clemson.edu/~luofeng/deepsignal/), or [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P).
