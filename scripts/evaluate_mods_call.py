@@ -97,7 +97,11 @@ def _evaluate_(tested_sites, prob_cf):
             called_accuracy = float(correct) / called
         else:
             called_accuracy = 0
-        auroc = roc_auc_score(numpy.array(y_truelabel), numpy.array(y_scores))
+        try:
+            auroc = roc_auc_score(numpy.array(y_truelabel), numpy.array(y_scores))
+        except ValueError:
+            # for only one kind of label
+            auroc = 0
     return "%d\t%d\t%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d" \
            "\t%d\t%.3f\t%.3f" % (tp, fp, tn, fn,
                                  accuracy, recall, specificity, precision,

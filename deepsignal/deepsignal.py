@@ -94,6 +94,7 @@ def main_train(args):
 
     train_file = args.train_file
     valid_file = args.valid_file
+    is_binary = str2bool(args.is_binary)
 
     model_dir = args.model_dir
     log_dir = args.log_dir
@@ -112,7 +113,7 @@ def main_train(args):
 
     train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
           batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
-          min_epoch_num, display_step, pos_weight)
+          min_epoch_num, display_step, pos_weight, is_binary)
 
 
 def main():
@@ -304,6 +305,11 @@ def main():
                           help="file contains samples for testing, from extract_features.py. "
                                "The file should contain shuffled positive and negative samples. "
                                "For CpG, 10k (~5k positive and ~5k negative) samples are sufficient.")
+    st_input.add_argument("--is_binary", action="store", type=str, required=False,
+                          default="no", choices=["yes", "no"],
+                          help="are the train_file and valid_file in binary format or not? "
+                               "'yes' or 'no', default no. "
+                               "(for binary format, see scripts/generate_binary_feature_file.py)")
 
     st_output = sub_train.add_argument_group("OUTPUT")
     st_output.add_argument("--model_dir", "-o", action="store", type=str, required=True,

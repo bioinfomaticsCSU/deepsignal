@@ -8,6 +8,7 @@ Documentation
 v0.1.6
 -------------
 add option --positions in extract_features module,
+add option/function of binary_format feature file to speed up training
 
 v0.1.5
 -------------
