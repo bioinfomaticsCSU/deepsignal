@@ -17,6 +17,31 @@ import re
 
 from .model import Model
 from .utils.process_utils import base2code_dna
+from .utils.process_utils import str2bool
+
+
+def _parse_a_line_b(value, base_num, signal_num):
+    vec = tf.decode_raw(value, tf.int8)
+
+    bases = tf.cast(tf.reshape(tf.strided_slice(vec, [0], [base_num]), [base_num]), dtype=tf.int32)
+    means = tf.bitcast(
+        tf.reshape(tf.strided_slice(vec, [base_num], [base_num + base_num * 4]), [base_num, 4]),
+        type=tf.float32)
+    stds = tf.bitcast(
+        tf.reshape(tf.strided_slice(vec, [base_num * 5], [base_num * 5 + base_num * 4]), [base_num, 4]),
+        type=tf.float32)
+    sanum = tf.cast(tf.bitcast(
+        tf.reshape(tf.strided_slice(vec, [base_num * 9], [base_num * 9 + base_num * 2]), [base_num, 2]),
+        type=tf.int16), dtype=tf.int32)
+    signals = tf.bitcast(
+        tf.reshape(tf.strided_slice(vec, [base_num * 11], [base_num * 11 + 4 * signal_num]),
+                   [signal_num, 4]), type=tf.float32)
+    labels = tf.cast(
+        tf.reshape(tf.strided_slice(vec, [base_num * 11 + signal_num * 4], [base_num * 11 + signal_num * 4 + 1]),
+                   [1]),
+        dtype=tf.int32)
+
+    return bases, means, stds, sanum, signals, labels
 
 
 def _parse_a_line(line):
@@ -37,7 +62,7 @@ def _parse_a_line(line):
 
 def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
           batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
-          min_epoch_num, display_step, pos_weight):
+          min_epoch_num, display_step, pos_weight, is_binary=False):
     train_start = time.time()
 
     train_file = os.path.abspath(train_file)
@@ -77,13 +102,41 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
             os.mkdir(log_dir)
 
     # train dataset
-    dataset = tf.data.TextLineDataset([train_file]).map(_parse_a_line)
+    if is_binary:
+        FEATURE_LEN = kmer_len
+        SIGNAL_LEN = cent_signals_len
+        base_bytes = FEATURE_LEN * 1
+        means_bytes = FEATURE_LEN * 4
+        stds_bytes = FEATURE_LEN * 4
+        sanum_bytes = FEATURE_LEN * 2
+        signal_bytes = SIGNAL_LEN * 4
+        label_bytes = 1
+        record_len = base_bytes + means_bytes + stds_bytes + \
+            sanum_bytes + signal_bytes + label_bytes
+        dataset = tf.data.FixedLengthRecordDataset(train_file, record_len).map(
+            lambda x: _parse_a_line_b(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN))
+    else:
+        dataset = tf.data.TextLineDataset([train_file]).map(_parse_a_line)
     dataset = dataset.shuffle(batch_size * 3).batch(batch_size)
     iterator = dataset.make_initializable_iterator()
     element = iterator.get_next()
 
     # valid dataset
-    valid_dataset = tf.data.TextLineDataset([valid_file]).map(_parse_a_line)
+    if is_binary:
+        FEATURE_LEN = kmer_len
+        SIGNAL_LEN = cent_signals_len
+        base_bytes = FEATURE_LEN * 1
+        means_bytes = FEATURE_LEN * 4
+        stds_bytes = FEATURE_LEN * 4
+        sanum_bytes = FEATURE_LEN * 2
+        signal_bytes = SIGNAL_LEN * 4
+        label_bytes = 1
+        record_len = base_bytes + means_bytes + stds_bytes + \
+                     sanum_bytes + signal_bytes + label_bytes
+        valid_dataset = tf.data.FixedLengthRecordDataset(valid_file, record_len).map(
+            lambda x: _parse_a_line_b(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN))
+    else:
+        valid_dataset = tf.data.TextLineDataset([valid_file]).map(_parse_a_line)
     valid_dataset = valid_dataset.batch(batch_size)
     valid_iterator = valid_dataset.make_initializable_iterator()
     valid_element = valid_iterator.get_next()
@@ -269,6 +322,11 @@ def main():
                          help="file contains samples for testing, from extract_features.py. "
                               "The file should contain shuffled positive and negative samples. "
                               "For CpG, 10k (~5k positive and ~5k negative) samples are sufficient.")
+    p_input.add_argument("--is_binary", action="store", type=str, required=False,
+                         default="no", choices=["yes", "no"],
+                         help="are the train_file and valid_file in binary format or not? "
+                              "'yes' or 'no', default no. "
+                              "(for binary format, see scripts/generate_binary_feature_file.py)")
 
     p_output = parser.add_argument_group("OUTPUT")
     p_output.add_argument("--model_dir", "-o", action="store", type=str, required=True,
@@ -309,6 +367,7 @@ def main():
 
     train_file = args.train_file
     valid_file = args.valid_file
+    is_binary = str2bool(args.is_binary)
 
     model_dir = os.path.abspath(args.model_dir)
     log_dir = os.path.abspath(args.log_dir)
@@ -327,7 +386,7 @@ def main():
 
     train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
           batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
-          min_epoch_num, display_step, pos_weight)
+          min_epoch_num, display_step, pos_weight, is_binary)
 
 
 if __name__ == '__main__':
