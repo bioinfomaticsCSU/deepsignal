@@ -159,6 +159,10 @@ A new model can be trained as follows:
 deepsignal train --train_file /path/to/train_data/file --valid_file /path/to/valid_data/file --model_dir /dir/to/save/the/new/model
 ```
 
+Publication
+===========
+Peng Ni, Neng Huang, Zhi Zhang, De-Peng Wang, Fan Liang, Yu Miao, Chuan-Le Xiao, Feng Luo, and Jianxin Wang, "DeepSignal: detecting DNA methylation state from Nanopore sequencing reads using deep-learning.", Bioinformatics, 2019. [doi:10.1093/bioinformatics/btz276](https://doi.org/10.1093/bioinformatics/btz276)
+
 License
 =========
 Copyright (C) 2018 [Jianxin Wang](jxwang@mail.csu.edu.cn), [Feng Luo](luofeng@clemson.edu), [Peng Ni](nipeng@csu.edu.cn), [Neng Huang](huangneng@csu.edu.cn)

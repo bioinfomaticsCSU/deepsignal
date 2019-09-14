@@ -79,6 +79,13 @@ class Model(object):
             self.activation_logits = tf.nn.sigmoid(logits)
             self.prediction = tf.argmax(self.activation_logits, axis=1)
 
+            # self.activation_logits1 = tf.cast(tf.squeeze(tf.slice(self.activation_logits, [0, 1],
+            #                                                       [tf.shape(self.activation_logits)[0], 1])),
+            #                                   tf.float32)
+            # self.prediction = tf.where(tf.greater(self.activation_logits1, 0.5),
+            #                            tf.ones_like(self.activation_logits1, dtype=tf.int32),
+            #                            tf.zeros_like(self.activation_logits1, dtype=tf.int32))
+
             # >>need more tests to decide whether to use ONE_HOT in WEIGHTED_CROSS_ENTROPY or not<<
             # >>especially when pos_weight != 1<<
             self.loss_pw = tf.nn.weighted_cross_entropy_with_logits(
