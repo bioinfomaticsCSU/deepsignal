@@ -34,6 +34,8 @@ def main_extraction(args):
     reference_path = args.reference_path
     is_dna = str2bool(args.is_dna)
     write_path = args.write_path
+    w_is_dir = str2bool(args.w_is_dir)
+    w_batch_num = args.w_batch_num
 
     kmer_len = args.kmer_len
     cent_signals_num = args.cent_signals_len
@@ -48,7 +50,7 @@ def main_extraction(args):
     extract_features(fast5_dir, is_recursive, reference_path, is_dna,
                      f5_batch_num, write_path, nproc, corrected_group, basecall_subgroup,
                      normalize_method, motifs, mod_loc, kmer_len, cent_signals_num, methy_label,
-                     position_file)
+                     position_file, w_is_dir, w_batch_num)
 
 
 def main_call_mods(args):
@@ -201,6 +203,12 @@ def main():
     se_output.add_argument("--write_path", "-o", action="store",
                            type=str, required=True,
                            help='file path to save the features')
+    se_output.add_argument("--w_is_dir", action="store",
+                           type=str, required=False, default="no",
+                           help='if using a dir to save features into multiple files')
+    se_output.add_argument("--w_batch_num", action="store",
+                           type=int, required=False, default=200,
+                           help='features batch num to save in a single writed file when --is_dir is true')
 
     sub_extract.add_argument("--nproc", "-p", action="store", type=int, default=1,
                              required=False,

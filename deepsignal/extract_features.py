@@ -7,6 +7,7 @@ signal_stds, signal_lens, cent_signals, methy_label
 from __future__ import absolute_import
 
 import sys
+import os
 import argparse
 import time
 import h5py
@@ -334,6 +335,43 @@ def _write_featurestr_to_file(write_fp, featurestr_q):
             wf.flush()
 
 
+def _write_featurestr_to_dir(write_dir, featurestr_q, w_batch_num):
+    if os.path.exists(write_dir):
+        if os.path.isfile(write_dir):
+            raise FileExistsError("{} already exists as a file, please use another write_dir".format(write_dir))
+    else:
+        os.makedirs(write_dir)
+
+    file_count = 0
+    wf = open("/".join([write_dir, str(file_count) + ".tsv"]), "w")
+    batch_count = 0
+    while True:
+        # during test, it's ok without the sleep(time_wait)
+        if featurestr_q.empty():
+            time.sleep(time_wait)
+            continue
+        features_str = featurestr_q.get()
+        if features_str == "kill":
+            break
+
+        if batch_count >= w_batch_num:
+            wf.flush()
+            wf.close()
+            file_count += 1
+            wf = open("/".join([write_dir, str(file_count) + ".tsv"]), "w")
+            batch_count = 0
+        for one_features_str in features_str:
+            wf.write(one_features_str + "\n")
+        batch_count += 1
+
+
+def _write_featurestr(write_fp, featurestr_q, w_batch_num=10000, is_dir=False):
+    if is_dir:
+        _write_featurestr_to_dir(write_fp, featurestr_q, w_batch_num)
+    else:
+        _write_featurestr_to_file(write_fp, featurestr_q)
+
+
 def _read_position_file(position_file):
     postions = set()
     with open(position_file, 'r') as rf:
@@ -371,7 +409,7 @@ def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
                      batch_size, write_fp, nproc,
                      corrected_group, basecall_subgroup, normalize_method,
                      motifs, methyloc, kmer_len, raw_signals_len, methy_label,
-                     position_file):
+                     position_file, w_is_dir, w_batch_num):
     start = time.time()
 
     motif_seqs, chrom2len, fast5s_q, len_fast5s, positions = _extract_preprocess(fast5_dir, is_recursive,
@@ -397,7 +435,7 @@ def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
         featurestr_procs.append(p)
 
     print("write_process started..")
-    p_w = mp.Process(target=_write_featurestr_to_file, args=(write_fp, featurestr_q))
+    p_w = mp.Process(target=_write_featurestr, args=(write_fp, featurestr_q, w_batch_num, w_is_dir))
     p_w.daemon = True
     p_w.start()
 
@@ -494,6 +532,12 @@ def main():
     ep_output.add_argument("--write_path", "-o", action="store",
                            type=str, required=True,
                            help='file path to save the features')
+    ep_output.add_argument("--w_is_dir", action="store",
+                           type=str, required=False, default="no",
+                           help='if using a dir to save features into multiple files')
+    ep_output.add_argument("--w_batch_num", action="store",
+                           type=int, required=False, default=200,
+                           help='features batch num to save in a single writed file when --is_dir is true')
 
     extraction_parser.add_argument("--nproc", "-p", action="store", type=int, default=1,
                                    required=False,
@@ -514,6 +558,8 @@ def main():
     reference_path = extraction_args.reference_path
     is_dna = str2bool(extraction_args.is_dna)
     write_path = extraction_args.write_path
+    w_is_dir = str2bool(extraction_args.w_is_dir)
+    w_batch_num = extraction_args.w_batch_num
 
     kmer_len = extraction_args.kmer_len
     cent_signals_num = extraction_args.cent_signals_len
@@ -528,7 +574,7 @@ def main():
     extract_features(fast5_dir, is_recursive, reference_path, is_dna,
                      f5_batch_num, write_path, nproc, corrected_group, basecall_subgroup,
                      normalize_method, motifs, mod_loc, kmer_len, cent_signals_num, methy_label,
-                     position_file)
+                     position_file, w_is_dir, w_batch_num)
 
 
 if __name__ == '__main__':
