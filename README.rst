@@ -5,6 +5,10 @@ deepsignal
 Documentation
 -------------
 
+v0.1.7
+-------------
+Prevent Queue.qsize() from raising NotImplementedError on Mac OS X (github: vterron/lemon@9ca6b4b)
+
 v0.1.6
 -------------
 add option --positions in extract_features module,

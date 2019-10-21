@@ -13,6 +13,7 @@ import h5py
 import random
 import numpy as np
 import multiprocessing as mp
+from .utils.process_utils import Queue
 from statsmodels import robust
 
 from .utils.process_utils import str2bool
@@ -174,6 +175,28 @@ def _get_central_signals(signals_list, rawsignal_num=360):
     return cent_signals
 
 
+def _get_scaling_of_a_read(fast5fp):
+    global_key = "UniqueGlobalKey/"
+    try:
+        h5file = h5py.File(fast5fp, mode='r')
+        channel_info = dict(list(h5file[global_key + 'channel_id'].attrs.items()))
+        digi = channel_info['digitisation']
+        parange = channel_info['range']
+        offset = channel_info['offset']
+        scaling = parange / digi
+
+        h5file.close()
+        # print(scaling, offset)
+        return scaling, offset
+    except IOError:
+        print("the {} can't be opened".format(fast5fp))
+        return None, None
+
+
+def _rescale_signals(rawsignals, scaling, offset):
+    return np.array(scaling * (rawsignals + offset), dtype=np.float)
+
+
 def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_method,
                       motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
                       methy_label, positions):
@@ -182,6 +205,13 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
     for fast5_fp in fast5s:
         try:
             raw_signal, events = _get_label_raw(fast5_fp, corrected_group, basecall_subgroup)
+
+            # scaling, offset = _get_scaling_of_a_read(fast5_fp)
+            # if scaling is None:
+            #     continue
+            # else:
+            #     raw_signal = _rescale_signals(raw_signal, scaling, offset)
+
             norm_signals = _normalize_signals(raw_signal, normalize_method)
             genomeseq, signal_list = "", []
             for e in events:
@@ -286,6 +316,7 @@ def get_a_batch_features_str(fast5s_q, featurestr_q, errornum_q,
         featurestr_q.put(features_str)
         while featurestr_q.qsize() > queen_size_border:
             time.sleep(time_wait)
+    # print("get out of while loop in get_feature_str")
 
 
 def _write_featurestr_to_file(write_fp, featurestr_q):
@@ -329,7 +360,8 @@ def _extract_preprocess(fast5_dir, is_recursive, motifs, is_dna, reference_path,
     if position_file is not None:
         positions = _read_position_file(position_file)
 
-    fast5s_q = mp.Queue()
+    # fast5s_q = mp.Queue()
+    fast5s_q = Queue()
     _fill_files_queue(fast5s_q, fast5_files, f5_batch_num)
 
     return motif_seqs, chrom2len, fast5s_q, len(fast5_files), positions
@@ -346,8 +378,10 @@ def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
                                                                                  motifs, is_dna, reference_path,
                                                                                  batch_size, position_file)
 
-    featurestr_q = mp.Queue()
-    errornum_q = mp.Queue()
+    # featurestr_q = mp.Queue()
+    # errornum_q = mp.Queue()
+    featurestr_q = Queue()
+    errornum_q = Queue()
 
     featurestr_procs = []
     if nproc > 1:
@@ -369,6 +403,7 @@ def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
 
     errornum_sum = 0
     while True:
+        # print("killing feature_p")
         running = any(p.is_alive() for p in featurestr_procs)
         while not errornum_q.empty():
             errornum_sum += errornum_q.get()

@@ -15,6 +15,7 @@ import numpy as np
 from sklearn import metrics
 
 import multiprocessing as mp
+from .utils.process_utils import Queue
 import time
 
 from .model import Model
@@ -252,9 +253,11 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                learning_rate, class_num, model_path, success_file, result_file,
                                nproc, positions):
 
-    errornum_q = mp.Queue()
+    # errornum_q = mp.Queue()
+    errornum_q = Queue()
 
-    pred_str_q = mp.Queue()
+    # pred_str_q = mp.Queue()
+    pred_str_q = Queue()
 
     if nproc > 1:
         nproc -= 1
@@ -300,10 +303,13 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                mod_loc, kmer_len, cent_signals_len, methy_label, batch_size,
                                learning_rate, class_num, model_path, success_file, result_file,
                                nproc, positions):
-    features_batch_q = mp.Queue()
-    errornum_q = mp.Queue()
+    # features_batch_q = mp.Queue()
+    # errornum_q = mp.Queue()
+    features_batch_q = Queue()
+    errornum_q = Queue()
 
-    pred_str_q = mp.Queue()
+    # pred_str_q = mp.Queue()
+    pred_str_q = Queue()
 
     if nproc < 2:
         nproc = 2
@@ -385,12 +391,14 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
                                        result_file, nproc, positions)
 
     else:
-        features_batch_q = mp.Queue()
+        # features_batch_q = mp.Queue()
+        features_batch_q = Queue()
         p_rf = mp.Process(target=_read_features_file, args=(input_path, features_batch_q, batch_size))
         p_rf.daemon = True
         p_rf.start()
 
-        pred_str_q = mp.Queue()
+        # pred_str_q = mp.Queue()
+        pred_str_q = Queue()
 
         predstr_procs = []
         if nproc > 2:
