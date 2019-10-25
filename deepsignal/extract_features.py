@@ -83,9 +83,13 @@ def _get_alignment_attrs_of_each_strand(strand_path, h5obj):
         except TypeError:
             alignstrand = str(alignment_attrs['mapped_strand'])
             chrom = str(alignment_attrs['mapped_chrom'])
+            if chrom.startswith('b'):
+                chrom = chrom.split("'")[1]
     else:
         alignstrand = str(alignment_attrs['mapped_strand'])
         chrom = str(alignment_attrs['mapped_chrom'])
+        if chrom.startswith('b'):
+            chrom = chrom.split("'")[1]
     chrom_start = alignment_attrs['mapped_start']
 
     return strand, alignstrand, chrom, chrom_start
