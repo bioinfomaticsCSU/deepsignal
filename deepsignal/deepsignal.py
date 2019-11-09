@@ -4,10 +4,6 @@ from __future__ import absolute_import
 
 import argparse
 
-from .extract_features import extract_features
-from .call_modifications import call_mods
-from .train_model import train
-
 from .utils.process_utils import str2bool
 
 
@@ -22,6 +18,8 @@ def display_args(args):
 
 
 def main_extraction(args):
+    from .extract_features import extract_features
+
     display_args(args)
 
     fast5_dir = args.fast5_dir
@@ -54,6 +52,8 @@ def main_extraction(args):
 
 
 def main_call_mods(args):
+    from .call_modifications import call_mods
+
     display_args(args)
 
     input_path = args.input_path
@@ -92,6 +92,8 @@ def main_call_mods(args):
 
 
 def main_train(args):
+    from .train_model import train
+
     display_args(args)
 
     train_file = args.train_file
