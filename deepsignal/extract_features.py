@@ -211,11 +211,11 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
         try:
             raw_signal, events = _get_label_raw(fast5_fp, corrected_group, basecall_subgroup)
 
-            # scaling, offset = _get_scaling_of_a_read(fast5_fp)
-            # if scaling is None:
-            #     continue
-            # else:
-            #     raw_signal = _rescale_signals(raw_signal, scaling, offset)
+            scaling, offset = _get_scaling_of_a_read(fast5_fp)
+            if scaling is None:
+                continue
+            else:
+                raw_signal = _rescale_signals(raw_signal, scaling, offset)
 
             norm_signals = _normalize_signals(raw_signal, normalize_method)
             genomeseq, signal_list = "", []
