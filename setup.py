@@ -54,7 +54,6 @@ setup(
                       'h5py>=2.8.0',
                       'statsmodels>=0.9.0',
                       'scikit-learn>=0.20.1',
-                      'tensorflow==1.8.0',
                       ],
     # cmdclass={'test': PyTest},
     author_email='543943952@qq.com',

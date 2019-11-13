@@ -1,7 +1,7 @@
 # DeepSignal
 ## A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads.
 DeepSignal constructs a BiLSTM+Inception structure to detect DNA methylation state from Nanopore reads. It is
-built with **Tensorflow 1.8** and Python 3.
+built with **Tensorflow** and **Python 3**.
 
 ## Contents
 - [Installation](#Installation)
@@ -13,13 +13,13 @@ built with **Tensorflow 1.8** and Python 3.
 deepsignal is built on Python3. [tombo](https://github.com/nanoporetech/tombo) is required to re-squiggle the raw signals from nanopore reads before running deepsignal.
    - Prerequisites:\
        [Python 3.*](https://www.python.org/)\
+       [tensorflow](https://www.tensorflow.org/) (1.8.0<=tensorflow<=1.13.1)\
        [tombo](https://github.com/nanoporetech/tombo)
    - Dependencies:\
        [numpy](http://www.numpy.org/)\
        [h5py](https://github.com/h5py/h5py)\
        [statsmodels](https://github.com/statsmodels/statsmodels/)\
-       [scikit-learn](https://scikit-learn.org/stable/)\
-       [tensorflow v1.8.0](https://www.tensorflow.org/)
+       [scikit-learn](https://scikit-learn.org/stable/)
 
 ### 1. Create an environment
 We highly recommend to use a virtual environment for the installation of deepsignal and its dependencies. A virtual environment can be created and (de)activated as follows by using [conda](https://conda.io/docs/):
@@ -53,12 +53,20 @@ conda install -c bioconda ont-tombo
 pip install ont-tombo[full]
 ``` 
 
-- If a GPU-machine is used, the gpu version of tensorflow is required:
+- install [tensorflow](https://www.tensorflow.org/)  (version: 1.8.0<=tensorflow<=1.13.1) in the same environment:
+
 ```bash
 # install using conda
-conda install -c anaconda tensorflow-gpu==1.8.0
+conda install -c anaconda tensorflow==1.12.2
 # or install using pip
-pip install 'tensorflow-gpu==1.8.0'
+pip install 'tensorflow==1.12.2'
+```
+If a GPU-machine is used, install the gpu version of tensorflow. The cpu version is not required:
+```bash
+# install using conda
+conda install -c anaconda tensorflow-gpu==1.12.2
+# or install using pip
+pip install 'tensorflow-gpu==1.12.2'
 ```
 
 ## Trained models
