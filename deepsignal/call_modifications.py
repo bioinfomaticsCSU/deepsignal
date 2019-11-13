@@ -157,10 +157,12 @@ def _call_mods(features_batch, tf_sess, model, init_learning_rate):
 
 def _call_mods_q(init_learning_rate, class_num, model_path,
                  base_num, signal_num, features_batch_q, pred_str_q,
-                 success_file):
+                 success_file,
+                 is_rnn, is_base, is_cnn):
 
     model = Model(base_num=base_num,
-                  signal_num=signal_num, class_num=class_num)
+                  signal_num=signal_num, class_num=class_num,
+                  is_cnn=is_cnn, is_rnn=is_rnn, is_base=is_base)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -198,9 +200,11 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
                             methy_label, batch_num,
                             init_learning_rate, class_num, model_path,
-                            positions):
+                            positions,
+                            is_rnn, is_base, is_cnn):
     model = Model(base_num=kmer_len,
-                  signal_num=raw_signals_len, class_num=class_num)
+                  signal_num=raw_signals_len, class_num=class_num,
+                  is_cnn=is_cnn, is_rnn=is_rnn, is_base=is_base)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -251,7 +255,7 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                corrected_group, basecall_subgroup, normalize_method,
                                mod_loc, kmer_len, cent_signals_len, methy_label, batch_size,
                                learning_rate, class_num, model_path, success_file, result_file,
-                               nproc, positions):
+                               nproc, positions, is_rnn, is_base, is_cnn):
 
     # errornum_q = mp.Queue()
     errornum_q = Queue()
@@ -269,7 +273,8 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                                              normalize_method, motif_seqs, mod_loc,
                                                              chrom2len, kmer_len, cent_signals_len,
                                                              methy_label, batch_size, learning_rate,
-                                                             class_num, model_path, positions))
+                                                             class_num, model_path, positions,
+                                                             is_rnn, is_base, is_cnn))
         p.daemon = True
         p.start()
         pred_str_procs.append(p)
@@ -302,7 +307,7 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                corrected_group, basecall_subgroup, normalize_method,
                                mod_loc, kmer_len, cent_signals_len, methy_label, batch_size,
                                learning_rate, class_num, model_path, success_file, result_file,
-                               nproc, positions):
+                               nproc, positions, is_rnn, is_base, is_cnn):
     # features_batch_q = mp.Queue()
     # errornum_q = mp.Queue()
     features_batch_q = Queue()
@@ -329,7 +334,7 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
 
     p_call_mods_gpu = mp.Process(target=_call_mods_q, args=(learning_rate, class_num, model_path,
                                                             kmer_len, cent_signals_len, features_batch_q,
-                                                            pred_str_q, success_file))
+                                                            pred_str_q, success_file, is_rnn, is_base, is_cnn))
     p_call_mods_gpu.daemon = True
     p_call_mods_gpu.start()
 
@@ -361,7 +366,8 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
 
 
 def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
-              batch_size, learning_rate, class_num, nproc, is_gpu, f5_args):
+              batch_size, learning_rate, class_num, nproc, is_gpu, is_rnn, is_base, is_cnn,
+              f5_args):
     start = time.time()
 
     model_path = os.path.abspath(model_path)
@@ -383,12 +389,14 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
             _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s, corrected_group,
                                        basecall_subgroup, normalize_method, mod_loc, kmer_len, cent_signals_len,
                                        methy_label, batch_size, learning_rate, class_num, model_path, success_file,
-                                       result_file, nproc, positions)
+                                       result_file, nproc, positions,
+                                       is_rnn, is_base, is_cnn)
         else:
             _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s, corrected_group,
                                        basecall_subgroup, normalize_method, mod_loc, kmer_len, cent_signals_len,
                                        methy_label, batch_size, learning_rate, class_num, model_path, success_file,
-                                       result_file, nproc, positions)
+                                       result_file, nproc, positions,
+                                       is_rnn, is_base, is_cnn)
 
     else:
         # features_batch_q = mp.Queue()
@@ -412,7 +420,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
         for _ in range(nproc_tf):
             p = mp.Process(target=_call_mods_q, args=(learning_rate, class_num, model_path,
                                                       kmer_len, cent_signals_len, features_batch_q,
-                                                      pred_str_q, success_file))
+                                                      pred_str_q, success_file, is_rnn, is_base, is_cnn))
             p.daemon = True
             p.start()
             predstr_procs.append(p)
@@ -450,6 +458,14 @@ def main():
     p_call = parser.add_argument_group("CALL")
     p_call.add_argument("--model_path", "-m", action="store", type=str, required=True,
                         help="file path of the trained model (.ckpt)")
+
+    p_call.add_argument('--is_cnn', type=str, default='yes', required=False,
+                        help="dose the used model contain inception module?")
+    p_call.add_argument('--is_rnn', type=str, default='yes', required=False,
+                        help="dose the used model contain BiLSTM module?")
+    p_call.add_argument('--is_base', type=str, default='yes', required=False,
+                        help="dose the BiLSTM module of the used model take base features as input?")
+
     p_call.add_argument("--kmer_len", "-x", action="store", default=17, type=int, required=False,
                         help="base num of the kmer, default 17")
     p_call.add_argument("--cent_signals_len", "-y", action="store", default=360, type=int, required=False,
@@ -528,6 +544,10 @@ def main():
     model_path = args.model_path
     result_file = args.result_file
 
+    is_cnn = str2bool(args.is_cnn)
+    is_base = str2bool(args.is_base)
+    is_rnn = str2bool(args.is_rnn)
+
     kmer_len = args.kmer_len
     cent_signals_len = args.cent_signals_len
 
@@ -555,7 +575,8 @@ def main():
                normalize_method, motifs, mod_loc, methy_label, f5_batch_num, position_file)
 
     call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
-              batch_size, learning_rate, class_num, nproc, is_gpu, f5_args)
+              batch_size, learning_rate, class_num, nproc, is_gpu, is_rnn, is_base, is_cnn,
+              f5_args)
 
 
 if __name__ == '__main__':

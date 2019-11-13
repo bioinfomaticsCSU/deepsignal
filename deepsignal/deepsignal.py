@@ -61,6 +61,10 @@ def main_call_mods(args):
     model_path = args.model_path
     result_file = args.result_file
 
+    is_cnn = str2bool(args.is_cnn)
+    is_base = str2bool(args.is_base)
+    is_rnn = str2bool(args.is_rnn)
+
     kmer_len = args.kmer_len
     cent_signals_len = args.cent_signals_len
 
@@ -88,7 +92,8 @@ def main_call_mods(args):
                normalize_method, motifs, mod_loc, methy_label, f5_batch_num, position_file)
 
     call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
-              batch_size, learning_rate, class_num, nproc, is_gpu, f5_args)
+              batch_size, learning_rate, class_num, nproc, is_gpu, is_rnn, is_base, is_cnn,
+              f5_args)
 
 
 def main_train(args):
@@ -102,6 +107,10 @@ def main_train(args):
 
     model_dir = args.model_dir
     log_dir = args.log_dir
+
+    is_cnn = str2bool(args.is_cnn)
+    is_base = str2bool(args.is_base)
+    is_rnn = str2bool(args.is_rnn)
 
     kmer_len = args.kmer_len
     cent_signals_len = args.cent_signals_len
@@ -117,18 +126,27 @@ def main_train(args):
 
     train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
           batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
-          min_epoch_num, display_step, pos_weight, is_binary)
+          min_epoch_num, display_step, pos_weight, is_binary, is_rnn, is_base, is_cnn)
+
+
+def main_denoise(args):
+    from .denoise import denoise
+
+    display_args(args)
+    denoise(args)
 
 
 def main():
     parser = argparse.ArgumentParser(prog='deepsignal',
                                      description="detecting base modifications from Nanopore sequencing reads, "
-                                                 "deepsignal contains three modules: \n"
+                                                 "deepsignal contains four modules: \n"
                                                  "\t%(prog)s extract: extract features from corrected (tombo) "
                                                  "fast5s for training or testing\n"
                                                  "\t%(prog)s call_mods: call modifications\n"
                                                  "\t%(prog)s train: train a model, need two independent "
-                                                 "datasets for training and validating",
+                                                 "datasets for training and validating\n"
+                                                 "\t%(prog)s denoise: denoise training samples by deep-learning, "
+                                                 "filter false positive samples",
                                      formatter_class=argparse.RawTextHelpFormatter)
 
     subparsers = parser.add_subparsers(title="modules", help='deepsignal modules, use -h/--help for help')
@@ -140,6 +158,8 @@ def main():
     sub_call_mods = subparsers.add_parser("call_mods", description="call modifications")
     sub_train = subparsers.add_parser("train", description="train a model, need two independent datasets for training "
                                                            "and validating")
+    sub_denoise = subparsers.add_parser("denoise", description="denoise training samples by deep-learning, "
+                                                               "filter false positive samples")
 
     # sub_extract ============================================================================
     se_input = sub_extract.add_argument_group("INPUT")
@@ -232,6 +252,14 @@ def main():
     sc_call = sub_call_mods.add_argument_group("CALL")
     sc_call.add_argument("--model_path", "-m", action="store", type=str, required=True,
                          help="file path of the trained model (.ckpt)")
+
+    sc_call.add_argument('--is_cnn', type=str, default='yes', required=False,
+                         help="dose the used model contain inception module?")
+    sc_call.add_argument('--is_rnn', type=str, default='yes', required=False,
+                         help="dose the used model contain BiLSTM module?")
+    sc_call.add_argument('--is_base', type=str, default='yes', required=False,
+                         help="dose the BiLSTM module of the used model take base features as input?")
+
     sc_call.add_argument("--kmer_len", "-x", action="store", default=17, type=int, required=False,
                          help="base num of the kmer, default 17")
     sc_call.add_argument("--cent_signals_len", "-y", action="store", default=360, type=int, required=False,
@@ -329,6 +357,13 @@ def main():
                            help="directory for saving the training log")
 
     st_train = sub_train.add_argument_group("TRAIN")
+    st_train.add_argument('--is_cnn', type=str, default='yes', required=False,
+                          help="using inception module of deepsignal or not")
+    st_train.add_argument('--is_base', type=str, default='yes', required=False,
+                          help="using base features in BiLSTM module or not")
+    st_train.add_argument('--is_rnn', type=str, default='yes', required=False,
+                          help="using BiLSTM module of deepsignal or not")
+
     st_train.add_argument("--kmer_len", "-x", action="store", default=17, type=int, required=False,
                           help="base num of the kmer, default 17")
     st_train.add_argument("--cent_signals_len", "-y", action="store", default=360, type=int, required=False,
@@ -357,6 +392,40 @@ def main():
                                                "If |pos samples| : |neg samples| = 1:3, set pos_weight to 3.")
 
     sub_train.set_defaults(func=main_train)
+
+    # sub_denoise =====================================================================================
+    sd_input = sub_denoise.add_argument_group("INPUT")
+    sd_input.add_argument('--train_file', type=str, required=True)
+
+    sd_train = sub_denoise.add_argument_group("TRAIN")
+    sd_train.add_argument('--model_prefix', type=str, default="model",
+                          required=False)
+
+    sd_train.add_argument('--is_cnn', type=str, default='no', required=False)
+    sd_train.add_argument('--is_base', type=str, default='no', required=False)
+    sd_train.add_argument('--is_rnn', type=str, default='yes', required=False)
+
+    sd_train.add_argument('--seq_len', type=int, default=17, required=False)
+    sd_train.add_argument('--cent_signals_len', type=int, default=360, required=False)
+    sd_train.add_argument('--layer_num', type=int, default=3, required=False)
+    sd_train.add_argument('--class_num', type=int, default=2, required=False)
+    sd_train.add_argument('--batch_size', type=int, default=512, required=False)
+    sd_train.add_argument('--lr', type=float, default=0.001, required=False,
+                          help="learning rate")
+    sd_train.add_argument('--decay_rate', type=float, default=0.1, required=False)
+    sd_train.add_argument('--keep_prob', action="store", default=0.5, type=float,
+                          required=False, help="keep prob, default 0.5")
+    sd_train.add_argument('--pos_weight', type=float, default=1.0, required=False)
+
+    sd_train.add_argument('--iterations', type=int, default=6, required=False)
+    sd_train.add_argument('--epoch_num', type=int, default=5, required=False)
+    sd_train.add_argument('--step_interval', type=int, default=100, required=False)
+    sd_train.add_argument('--rounds', type=int, default=5, required=False)
+    sd_train.add_argument("--score_cf", type=float, default=0.5,
+                          required=False,
+                          help="score cutoff")
+
+    sub_denoise.set_defaults(func=main_denoise)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

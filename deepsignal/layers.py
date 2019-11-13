@@ -23,6 +23,7 @@ def rnn_layers(x,
                layer_num=3,
                cell='LSTM',
                kprob=0.8,
+               layer_name="brnn",
                dtype=tf.float32):
     """Generate RNN layers.
 
@@ -64,7 +65,7 @@ def rnn_layers(x,
         cells_bw.append(cell_bw)
     multi_cells_fw = tf.nn.rnn_cell.MultiRNNCell(cells_fw)
     multi_cells_bw = tf.nn.rnn_cell.MultiRNNCell(cells_bw)
-    with tf.variable_scope('BDGRU_rnn') as scope:
+    with tf.variable_scope(layer_name) as scope:
         outputs, states = tf.nn.bidirectional_dynamic_rnn(
             cell_fw=multi_cells_fw, cell_bw=multi_cells_bw, inputs=x, sequence_length=seq_length, dtype=dtype,
             scope=scope)
@@ -83,22 +84,22 @@ def Batch_Normalization(x, is_training, scope):
                        lambda: batch_norm(inputs=x, is_training=is_training, reuse=True))
 
 
-def inception_layer(indata, training, times=16):
+def inception_layer(indata, training, scope_str="inception_layer", times=16):
     fea_shape = indata.get_shape().as_list()
     in_channel = fea_shape[-1]
-    with tf.variable_scope('branch1_maxpooling'):
+    with tf.variable_scope(scope_str + 'branch1_maxpooling'):
         max_pool = tf.layers.max_pooling2d(
             indata, [1, 3], strides=1, padding="SAME", name="maxpool0a_1x3")
         conv1a = tf.layers.conv2d(inputs=max_pool, filters=times * 3, kernel_size=[1, 1], strides=1, padding="SAME",
                                   use_bias=False, name='conv1a_1x1')
         conv1a = Batch_Normalization(conv1a, is_training=training, scope='bn')
         conv1a = tf.nn.relu(conv1a)
-    with tf.variable_scope('branch2_1x1'):
+    with tf.variable_scope(scope_str + 'branch2_1x1'):
         conv0b = tf.layers.conv2d(inputs=indata, filters=times * 3, kernel_size=[1, 1], strides=1, padding="SAME",
                                   use_bias=False, name='conv0b_1x1')
         conv0b = Batch_Normalization(conv0b, is_training=training, scope='bn')
         conv0b = tf.nn.relu(conv0b)
-    with tf.variable_scope('branch3_1x3'):
+    with tf.variable_scope(scope_str + 'branch3_1x3'):
         conv0c = tf.layers.conv2d(inputs=indata, filters=times * 2, kernel_size=[1, 1], strides=1, padding="SAME",
                                   use_bias=False, name="conv0c_1x1")
         conv0c = Batch_Normalization(conv0c, is_training=training, scope='bn1')
@@ -107,7 +108,7 @@ def inception_layer(indata, training, times=16):
                                   use_bias=False, name="conv1c_1x3")
         conv1c = Batch_Normalization(conv1c, is_training=training, scope='bn2')
         conv1c = tf.nn.relu(conv1c)
-    with tf.variable_scope('branch4_1x5'):
+    with tf.variable_scope(scope_str + 'branch4_1x5'):
         conv0d = tf.layers.conv2d(inputs=indata, filters=times * 2, kernel_size=[1, 1], strides=1, padding="SAME",
                                   use_bias=False, name="conv0d_1x1")
         conv0d = Batch_Normalization(conv0d, is_training=training, scope='bn1')
@@ -116,7 +117,7 @@ def inception_layer(indata, training, times=16):
                                   use_bias=False, name="conv1d_1x5")
         conv1d = Batch_Normalization(conv1d, is_training=training, scope='bn2')
         conv1d = tf.nn.relu(conv1d)
-    with tf.variable_scope('branch5_residual_1x3'):
+    with tf.variable_scope(scope_str + 'branch5_residual_1x3'):
         conv_stem = tf.layers.conv2d(inputs=indata, filters=times * 3, kernel_size=[1, 1], strides=1, padding="SAME",
                                      use_bias=False, name='convstem_1x1')
         conv_stem = Batch_Normalization(
@@ -148,12 +149,14 @@ class Event_model():
                  cell,
                  layer_num,
                  hidden_num,
-                 keep_prob):
+                 keep_prob,
+                 layer_name="eventmodel"):
         self.seq_length = sequence_len
         self.cell = cell
         self.layer_num = layer_num
         self.hidden_num = hidden_num
         self.keep_prob = keep_prob
+        self.layer_name = layer_name
 
     def __call__(self, input):
         rnn_out, rnn_states = rnn_layers(input,
@@ -161,7 +164,8 @@ class Event_model():
                                          seq_length=self.seq_length,
                                          hidden_num=self.hidden_num,
                                          layer_num=self.layer_num,
-                                         kprob=self.keep_prob)
+                                         kprob=self.keep_prob,
+                                         layer_name=self.layer_name)
         fw_out = rnn_out[0]
         bw_out = rnn_out[1]
         extract_rnn_out = tf.concat(
@@ -170,62 +174,63 @@ class Event_model():
 
 
 class incept_net():
-    def __init__(self, is_training):
+    def __init__(self, is_training, scopestr="inception_net"):
         self.training = is_training
+        self.scopestr = scopestr
 
     def __call__(self, signals):
         input_signal = signals
-        with tf.variable_scope("conv_layer1"):
+        with tf.variable_scope(self.scopestr + "conv_layer1"):
             x = tf.layers.conv2d(inputs=input_signal, filters=64, kernel_size=[1, 7], strides=2, padding="SAME",
                                  use_bias=False, name="conv")
             x = Batch_Normalization(
                 x, is_training=self.training, scope='bn')
             x = tf.nn.relu(x)  # [188,64]
-        with tf.variable_scope("maxpool_layer1"):
+        with tf.variable_scope(self.scopestr + "maxpool_layer1"):
             x = tf.layers.max_pooling2d(
                 x, [1, 3], strides=2, padding="SAME", name="maxpool")  # [94,64]
-        with tf.variable_scope("conv_layer2"):
+        with tf.variable_scope(self.scopestr + "conv_layer2"):
             x = tf.layers.conv2d(inputs=x, filters=128, kernel_size=[1, 1], strides=1, padding="SAME",
                                  use_bias=False, name="conv")
             x = Batch_Normalization(
                 x, is_training=self.training, scope='bn')
             x = tf.nn.relu(x)  # [94,128]
-        with tf.variable_scope("conv_layer3"):
+        with tf.variable_scope(self.scopestr + "conv_layer3"):
             x = tf.layers.conv2d(inputs=x, filters=256, kernel_size=[1, 3], strides=1, padding="SAME",
                                  use_bias=False, name="conv")
             x = Batch_Normalization(
                 x, is_training=self.training, scope='bn')
             x = tf.nn.relu(x)  # [94,256]
         # inception layer x 11
-        with tf.variable_scope('incp_layer1'):
-            x = inception_layer(x, self.training)  # [94,192]
-        with tf.variable_scope('incp_layer2'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('incp_layer3'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('maxpool_layer2'):
+        with tf.variable_scope(self.scopestr + 'incp_layer1'):
+            x = inception_layer(x, self.training, self.scopestr + "1")  # [94,192]
+        with tf.variable_scope(self.scopestr + 'incp_layer2'):
+            x = inception_layer(x, self.training, self.scopestr + "2")
+        with tf.variable_scope(self.scopestr + 'incp_layer3'):
+            x = inception_layer(x, self.training, self.scopestr + "3")
+        with tf.variable_scope(self.scopestr + 'maxpool_layer2'):
             x = tf.layers.max_pooling2d(
                 x, [1, 3], strides=2, padding="SAME", name="maxpool")   # [47,192]
-        with tf.variable_scope('incp_layer4'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('incp_layer5'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('incp_layer6'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('incp_layer7'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('incp_layer8'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('maxpool_layer3'):
+        with tf.variable_scope(self.scopestr + 'incp_layer4'):
+            x = inception_layer(x, self.training, self.scopestr + "4")
+        with tf.variable_scope(self.scopestr + 'incp_layer5'):
+            x = inception_layer(x, self.training, self.scopestr + "5")
+        with tf.variable_scope(self.scopestr + 'incp_layer6'):
+            x = inception_layer(x, self.training, self.scopestr + "6")
+        with tf.variable_scope(self.scopestr + 'incp_layer7'):
+            x = inception_layer(x, self.training, self.scopestr + "7")
+        with tf.variable_scope(self.scopestr + 'incp_layer8'):
+            x = inception_layer(x, self.training, self.scopestr + "8")
+        with tf.variable_scope(self.scopestr + 'maxpool_layer3'):
             x = tf.layers.max_pooling2d(
                 x, [1, 3], strides=2, padding="SAME", name="maxpool")   # [24,192]
-        with tf.variable_scope('incp_layer9'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('incp_layer10'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('incp_layer11'):
-            x = inception_layer(x, self.training)
-        with tf.variable_scope('avgpool_layer1'):
+        with tf.variable_scope(self.scopestr + 'incp_layer9'):
+            x = inception_layer(x, self.training, self.scopestr + "9")
+        with tf.variable_scope(self.scopestr + 'incp_layer10'):
+            x = inception_layer(x, self.training, self.scopestr + "10")
+        with tf.variable_scope(self.scopestr + 'incp_layer11'):
+            x = inception_layer(x, self.training, self.scopestr + "11")
+        with tf.variable_scope(self.scopestr + 'avgpool_layer1'):
             x = tf.layers.average_pooling2d(
                 x, [1, 7], strides=1, padding="SAME", name="avgpool")   # [24,192]
         # print('inception output shape:', x.get_shape().as_list())
@@ -241,8 +246,11 @@ class Joint_model():
 
     def __call__(self, event_model_output, signal_model_output):
         if signal_model_output is not None:
-            joint_input = tf.concat(
-                [event_model_output, signal_model_output], axis=1)  # [batch,1536+256*2]
+            if event_model_output is not None:
+                joint_input = tf.concat(
+                    [event_model_output, signal_model_output], axis=1)  # [batch,1536+256*2]
+            else:
+                joint_input = signal_model_output
         else:
             joint_input = event_model_output
 
