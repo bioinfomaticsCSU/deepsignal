@@ -38,6 +38,16 @@ iupac_alphabets_rna = {'A': ['A'], 'C': ['C'], 'G': ['G'], 'U': ['U'],
 # max_queue_size = 2000
 
 
+def display_args(args):
+    arg_vars = vars(args)
+    print("# ===============================================")
+    print("## parameters: ")
+    for arg_key in arg_vars.keys():
+        if arg_key != 'func':
+            print("{}:\n\t{}".format(arg_key, arg_vars[arg_key]))
+    print("# ===============================================")
+
+
 def str2bool(v):
     # susendberg's function
     return v.lower() in ("yes", "true", "t", "1")

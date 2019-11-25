@@ -5,16 +5,7 @@ from __future__ import absolute_import
 import argparse
 
 from .utils.process_utils import str2bool
-
-
-def display_args(args):
-    arg_vars = vars(args)
-    print("# ===============================================")
-    print("## parameters: ")
-    for arg_key in arg_vars.keys():
-        if arg_key != 'func':
-            print("{}:\n\t{}".format(arg_key, arg_vars[arg_key]))
-    print("# ===============================================")
+from .utils.process_utils import display_args
 
 
 def main_extraction(args):
