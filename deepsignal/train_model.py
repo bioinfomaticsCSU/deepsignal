@@ -340,7 +340,10 @@ def main():
     is_binary = str2bool(args.is_binary)
 
     model_dir = os.path.abspath(args.model_dir)
-    log_dir = os.path.abspath(args.log_dir)
+    if args.log_dir is not None:
+        log_dir = os.path.abspath(args.log_dir)
+    else:
+        log_dir = None
 
     is_cnn = str2bool(args.is_cnn)
     is_base = str2bool(args.is_base)
