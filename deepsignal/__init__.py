@@ -2,4 +2,4 @@
 DNA methylation state from Nanopore reads."""
 
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
