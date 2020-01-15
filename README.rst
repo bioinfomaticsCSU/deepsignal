@@ -8,6 +8,8 @@ Documentation
 v0.1.7
 -------------
 Prevent Queue.qsize() from raising NotImplementedError on Mac OS X (github: vterron/lemon@9ca6b4b)
+covert raw signals to pA values before normalization in extract_feature module
+add denoise module
 
 v0.1.6
 -------------

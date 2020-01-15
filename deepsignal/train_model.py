@@ -16,53 +16,15 @@ from sklearn import metrics
 import re
 
 from .model import Model
-from .utils.process_utils import base2code_dna
 from .utils.process_utils import str2bool
-
-
-def _parse_a_line_b(value, base_num, signal_num):
-    vec = tf.decode_raw(value, tf.int8)
-
-    bases = tf.cast(tf.reshape(tf.strided_slice(vec, [0], [base_num]), [base_num]), dtype=tf.int32)
-    means = tf.bitcast(
-        tf.reshape(tf.strided_slice(vec, [base_num], [base_num + base_num * 4]), [base_num, 4]),
-        type=tf.float32)
-    stds = tf.bitcast(
-        tf.reshape(tf.strided_slice(vec, [base_num * 5], [base_num * 5 + base_num * 4]), [base_num, 4]),
-        type=tf.float32)
-    sanum = tf.cast(tf.bitcast(
-        tf.reshape(tf.strided_slice(vec, [base_num * 9], [base_num * 9 + base_num * 2]), [base_num, 2]),
-        type=tf.int16), dtype=tf.int32)
-    signals = tf.bitcast(
-        tf.reshape(tf.strided_slice(vec, [base_num * 11], [base_num * 11 + 4 * signal_num]),
-                   [signal_num, 4]), type=tf.float32)
-    labels = tf.cast(
-        tf.reshape(tf.strided_slice(vec, [base_num * 11 + signal_num * 4], [base_num * 11 + signal_num * 4 + 1]),
-                   [1]),
-        dtype=tf.int32)
-
-    return bases, means, stds, sanum, signals, labels
-
-
-def _parse_a_line(line):
-    def _kmer2code(kmer_bytes):
-        return np.array([base2code_dna[x] for x in kmer_bytes.decode("utf-8")], np.int32)
-
-    words = tf.decode_csv(line, [[""]] * 12, "\t")
-
-    kmer = tf.py_func(_kmer2code, [words[6]], tf.int32)
-    base_mean = tf.string_to_number(tf.string_split([words[7]], ",").values, tf.float32)
-    base_std = tf.string_to_number(tf.string_split([words[8]], ",").values, tf.float32)
-    base_signal_len = tf.string_to_number(tf.string_split([words[9]], ",").values, tf.int32)
-    cent_signals = tf.string_to_number(tf.string_split([words[10]], ",").values, tf.float32)
-    label = tf.string_to_number(words[11], tf.int32)
-
-    return kmer, base_mean, base_std, base_signal_len, cent_signals, label
+from .utils.tf_utils import parse_a_line
+from .utils.tf_utils import parse_a_line_b
 
 
 def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
           batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
-          min_epoch_num, display_step, pos_weight, is_binary=False):
+          min_epoch_num, display_step, pos_weight, is_binary=False,
+          is_rnn=True, is_base=True, is_cnn=True):
     train_start = time.time()
 
     train_file = os.path.abspath(train_file)
@@ -114,9 +76,9 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
         record_len = base_bytes + means_bytes + stds_bytes + \
             sanum_bytes + signal_bytes + label_bytes
         dataset = tf.data.FixedLengthRecordDataset(train_file, record_len).map(
-            lambda x: _parse_a_line_b(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN))
+            lambda x: parse_a_line_b(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN))
     else:
-        dataset = tf.data.TextLineDataset([train_file]).map(_parse_a_line)
+        dataset = tf.data.TextLineDataset([train_file]).map(parse_a_line)
     dataset = dataset.shuffle(batch_size * 3).batch(batch_size)
     iterator = dataset.make_initializable_iterator()
     element = iterator.get_next()
@@ -134,15 +96,16 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
         record_len = base_bytes + means_bytes + stds_bytes + \
                      sanum_bytes + signal_bytes + label_bytes
         valid_dataset = tf.data.FixedLengthRecordDataset(valid_file, record_len).map(
-            lambda x: _parse_a_line_b(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN))
+            lambda x: parse_a_line_b(value=x, base_num=FEATURE_LEN, signal_num=SIGNAL_LEN))
     else:
-        valid_dataset = tf.data.TextLineDataset([valid_file]).map(_parse_a_line)
+        valid_dataset = tf.data.TextLineDataset([valid_file]).map(parse_a_line)
     valid_dataset = valid_dataset.batch(batch_size)
     valid_iterator = valid_dataset.make_initializable_iterator()
     valid_element = valid_iterator.get_next()
 
     model = Model(base_num=kmer_len,
-                  signal_num=cent_signals_len, class_num=class_num, pos_weight=pos_weight)
+                  signal_num=cent_signals_len, class_num=class_num, pos_weight=pos_weight,
+                  is_cnn=is_cnn, is_base=is_base, is_rnn=is_rnn)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -336,6 +299,13 @@ def main():
                           help="directory for saving the training log")
 
     p_train = parser.add_argument_group("TRAIN")
+    p_train.add_argument('--is_cnn', type=str, default='yes', required=False,
+                         help="using inception module of deepsignal or not")
+    p_train.add_argument('--is_base', type=str, default='yes', required=False,
+                         help="using base features in BiLSTM module or not")
+    p_train.add_argument('--is_rnn', type=str, default='yes', required=False,
+                         help="using BiLSTM module of deepsignal or not")
+
     p_train.add_argument("--kmer_len", "-x", action="store", default=17, type=int, required=False,
                          help="base num of the kmer, default 17")
     p_train.add_argument("--cent_signals_len", "-y", action="store", default=360, type=int, required=False,
@@ -370,7 +340,14 @@ def main():
     is_binary = str2bool(args.is_binary)
 
     model_dir = os.path.abspath(args.model_dir)
-    log_dir = os.path.abspath(args.log_dir)
+    if args.log_dir is not None:
+        log_dir = os.path.abspath(args.log_dir)
+    else:
+        log_dir = None
+
+    is_cnn = str2bool(args.is_cnn)
+    is_base = str2bool(args.is_base)
+    is_rnn = str2bool(args.is_rnn)
 
     kmer_len = args.kmer_len
     cent_signals_len = args.cent_signals_len
@@ -386,7 +363,7 @@ def main():
 
     train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len,
           batch_size, learning_rate, decay_rate, class_num, keep_prob, max_epoch_num,
-          min_epoch_num, display_step, pos_weight, is_binary)
+          min_epoch_num, display_step, pos_weight, is_binary, is_rnn, is_base, is_cnn)
 
 
 if __name__ == '__main__':

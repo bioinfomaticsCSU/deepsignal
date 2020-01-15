@@ -66,36 +66,20 @@ def write_sitekey2stats(sitekey2stats, result_file):
 
 def main():
     parser = argparse.ArgumentParser(description='calculate frequency of interested sites at genome level')
-    parser.add_argument('--input_path', '-i', action="store", type=str, required=True,
-                        help='a result file from call_modifications.py, or a directory contains a bunch of '
-                             'result files.')
+    parser.add_argument('--input_path', '-i', action="append", type=str, required=True,
+                        help='a result file from call_modifications.py, append mode')
     parser.add_argument('--result_file', '-o', action="store", type=str, required=True,
                         help='the file path to save the result')
     parser.add_argument('--prob_cf', type=float, action="store", required=False, default=0.0,
                         help='this is to remove ambiguous calls. '
                              'if abs(prob1-prob0)>=prob_cf, then we use the call. '
                              'range 0-1, default 0.')
-    parser.add_argument('--file_uid', type=str, action="store", required=False, default=None,
-                        help='a unique str which all input files has, this is for finding all input files and ignoring '
-                             'the un-input-files in a input directory. if input_path is a file, ignore this arg.')
     args = parser.parse_args()
 
-    input_path = os.path.abspath(args.input_path)
     result_file = args.result_file
     prob_cf = args.prob_cf
-    file_uid = args.file_uid
 
-    mods_files = []
-    if os.path.isdir(input_path):
-        for ifile in os.listdir(input_path):
-            if file_uid is None:
-                mods_files.append('/'.join([input_path, ifile]))
-            elif ifile.find(file_uid) != -1:
-                mods_files.append('/'.join([input_path, ifile]))
-    elif os.path.isfile(input_path):
-        mods_files.append(input_path)
-    else:
-        raise ValueError()
+    mods_files = args.input_path
     print("get {} input file(s)..".format(len(mods_files)))
 
     print("reading the input files..")
