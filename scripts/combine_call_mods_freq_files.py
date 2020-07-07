@@ -8,7 +8,7 @@ def _read_one_mod_freq_file(freqfile):
         for line in rf:
             words = line.strip().split("\t")
             m_key = (words[0], int(words[1]), words[2])
-            pos_in_strand = words[3]
+            pos_in_strand = int(words[3])
             methy_prob = float(words[4])
             unmethy_prob = float(words[5])
             methy_cov = int(words[6])
@@ -29,7 +29,7 @@ def _get_combined_freq_file(freqfiles):
         for fkey in finfo_tmp.keys():
             if fkey not in freqkeys:
                 freqkeys.add(fkey)
-                freqinfo[fkey] = ["", 0.0, 0.0, 0, 0, 0, 0.0, ""]
+                freqinfo[fkey] = [-1, 0.0, 0.0, 0, 0, 0, 0.0, ""]
             freqinfo[fkey][0] = finfo_tmp[fkey][0]
             freqinfo[fkey][1] += finfo_tmp[fkey][1]
             freqinfo[fkey][2] += finfo_tmp[fkey][2]
