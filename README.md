@@ -1,4 +1,12 @@
 # DeepSignal
+---
+[![Python](https://img.shields.io/pypi/pyversions/deepsignal)](https://www.python.org/)
+[![PyPI version](https://img.shields.io/pypi/v/deepsignal)](https://pypi.org/project/deepsignal/)
+[![GitHub License](https://img.shields.io/github/license/bioinfomaticsCSU/deepsignal)](https://github.com/bioinfomaticsCSU/deepsignal/blob/master/LICENSE)
+
+[![Downloads](https://pepy.tech/badge/deepsignal)](https://pepy.tech/project/deepsignal)
+[![Downloads](https://pepy.tech/badge/deepsignal/month)](https://pepy.tech/project/deepsignal/month)
+---
 ## A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads.
 DeepSignal constructs a BiLSTM+Inception structure to detect DNA methylation state from Nanopore reads. It is
 built with **Tensorflow** and **Python 3**.
