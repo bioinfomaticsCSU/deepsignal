@@ -215,14 +215,14 @@ def train_rounds(train_file, iterstr, args):
         os.remove(train_file2)
         os.remove(train_file1_bin)
         os.remove(train_file2_bin)
-    print("##########Train Cross Rank End!##########")
+    print("##########Train Cross Rank, finished!##########")
     sys.stdout.flush()
     return idxs2logtis_all
 
 
 def clean_samples(train_file, idx2logits, score_cf=0.5):
     # clean train samples ===
-    print("\n###### clean the samples ######")
+    print("\n######clean the samples######")
     idx2probs = dict()
     for idx in idx2logits.keys():
         probs = idx2logits[idx]
@@ -281,7 +281,7 @@ def clean_samples(train_file, idx2logits, score_cf=0.5):
     # wfn.close()
     wfp.close()
 
-    print("###### clean the samples end! ######")
+    print("######clean the samples, finished!######")
     sys.stdout.flush()
     # return train_clean_pos_file, train_clean_neg_file
     return train_clean_pos_file, left_ratio
@@ -318,9 +318,11 @@ def denoise(args):
         iterstr = str(iter_c + 1)
         idxs2logtis_all = train_rounds(train_file, iterstr, args)
         train_clean_pos_file, left_ratio = clean_samples(train_file, idxs2logtis_all, args.score_cf)
-        os.remove(train_file)
+        if train_file != args.train_file:
+            os.remove(train_file)
 
         # concat new train_file
+        print("\n#####concat denoised file#####")
         pos_num = count_line_num(train_clean_pos_file)
         fname, fext = os.path.splitext(train_neg_file)
         train_clean_neg_file = fname + ".r" + str(pos_num) + fext
@@ -332,6 +334,7 @@ def denoise(args):
         concat_two_files(train_clean_pos_file, train_clean_neg_file, concated_fp=train_file)
         os.remove(train_clean_neg_file)
         os.remove(train_clean_pos_file)
+        print("\n#####concat denoised file, finished!#####")
 
         if left_ratio > 0.99:
             break
