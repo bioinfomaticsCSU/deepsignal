@@ -52,18 +52,18 @@ def _rand_select_by_kmer_ratio(kmer2lines, kmer2ratios, totalline):
                                                 cnts))
     unfilled_cnt = totalline - len(selected_lines)
     print("totalline: {}, need to fill: {}".format(totalline, unfilled_cnt))
-
-    minlinenum = int(math.ceil(float(unfilled_cnt)/len(unratioed_kmers)))
-    cnts = 0
-    for kmer in unratioed_kmers:
-        lines = kmer2lines[kmer]
-        if len(lines) <= minlinenum:
-            selected_lines += lines
-            cnts += len(lines)
-        else:
-            selected_lines += random.sample(lines, minlinenum)
-            cnts += minlinenum
-    print("extract {} samples from {} diff kmers".format(cnts, len(unratioed_kmers)))
+    if len(unratioed_kmers) > 0:
+        minlinenum = int(math.ceil(float(unfilled_cnt)/len(unratioed_kmers)))
+        cnts = 0
+        for kmer in unratioed_kmers:
+            lines = kmer2lines[kmer]
+            if len(lines) <= minlinenum:
+                selected_lines += lines
+                cnts += len(lines)
+            else:
+                selected_lines += random.sample(lines, minlinenum)
+                cnts += minlinenum
+        print("extract {} samples from {} diff kmers".format(cnts, len(unratioed_kmers)))
     selected_lines = sorted(selected_lines)
     selected_lines = [-1] + selected_lines
     return selected_lines

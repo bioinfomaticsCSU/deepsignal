@@ -11,11 +11,13 @@ from sklearn import metrics
 from .model import Model
 from .utils.process_utils import str2bool
 from .utils.process_utils import random_select_file_rows_s
-from .utils.process_utils import random_select_file_rows
+# from .utils.process_utils import random_select_file_rows
 from .utils.process_utils import count_line_num
 from .utils.process_utils import concat_two_files
 from .utils.process_utils import extract
 from .utils.tf_utils import parse_a_line_b
+
+from .utils.process_utils import select_negsamples_asposkmer
 
 
 def _convert_txt2bin(train_file, args):
@@ -152,6 +154,10 @@ def train_1time(train_file_bin, valid_file_bin, valid_lidxs, modeltime, args):
             activation_logits, prediction = sess.run(
                 [model.activation_logits1, model.prediction], feed_dict=feed_dict)
 
+            for alogit in activation_logits:
+                idx2aclogits[valid_lidxs[lineidx_cnt]] = alogit
+                lineidx_cnt += 1
+
             vaccu_batch = metrics.accuracy_score(
                 y_true=v_label, y_pred=prediction)
             vreca_batch = metrics.recall_score(
@@ -165,20 +171,16 @@ def train_1time(train_file_bin, valid_file_bin, valid_lidxs, modeltime, args):
             iter_id += 1
             if iter_id % args.step_interval == 0:
                 endtime = time.time()
-                print('===test Step {}, '
+                print('===Test, Step {}, '
                       'Accuracy: {:.4f}, Precision: {:.4f}, Recall: {:.4f}, '
                       'Time: {:.2f}s'
                       .format(iter_id, vaccu_batch, vprec_batch, vreca_batch, endtime - start))
                 sys.stdout.flush()
+                start = time.time()
 
-            for alogit in activation_logits:
-                idx2aclogits[valid_lidxs[lineidx_cnt]] = alogit
-                lineidx_cnt += 1
-
-        endtime = time.time()
-        print("===test total Accuracy: {:.4f}, Precision: {:.4f}, Recall: {:.4f}, "
-              "Time: {:.2f}s".format(np.mean(vaccus), np.mean(vprecs), np.mean(vrecas),
-                                     endtime - start))
+        print("===Test, Total Accuracy: {:.4f}, Precision: {:.4f}, "
+              "Recall: {:.4f}".format(np.mean(vaccus), np.mean(vprecs), np.mean(vrecas)))
+        sys.stdout.flush()
         return idx2aclogits
 
 
@@ -192,7 +194,7 @@ def train_rounds(train_file, iterstr, args):
         idxs2logtis_all[i] = []
 
     for i in range(0, args.rounds):
-        print("\n##########Train Cross Rank, Iter {}, Round {}##########".format(iterstr, i+1))
+        print("##########Train Cross Rank, Iter {}, Round {}##########".format(iterstr, i+1))
         train_file1 = fname + ".half1" + fext
         train_file2 = fname + ".half2" + fext
         lidxs1, lidxs2 = random_select_file_rows_s(train_file, train_file1, train_file2,
@@ -200,7 +202,9 @@ def train_rounds(train_file, iterstr, args):
         train_file1_bin = _convert_txt2bin(train_file1, args)
         train_file2_bin = _convert_txt2bin(train_file2, args)
 
+        print("##########Train Cross Rank, Iter {}, Round {}, part1##########".format(iterstr, i + 1))
         idxs22logits = train_1time(train_file1_bin, train_file2_bin, lidxs2, iterstr + str(i) + str(1), args)
+        print("##########Train Cross Rank, Iter {}, Round {}, part2##########".format(iterstr, i + 1))
         idxs12logits = train_1time(train_file2_bin, train_file1_bin, lidxs1, iterstr + str(i) + str(2), args)
         for idx in idxs22logits.keys():
             idxs2logtis_all[idx].append(idxs22logits[idx])
@@ -211,13 +215,14 @@ def train_rounds(train_file, iterstr, args):
         os.remove(train_file2)
         os.remove(train_file1_bin)
         os.remove(train_file2_bin)
-    print("\n##########Train Cross Rank End!##########")
+    print("##########Train Cross Rank End!##########")
+    sys.stdout.flush()
     return idxs2logtis_all
 
 
 def clean_samples(train_file, idx2logits, score_cf=0.5):
     # clean train samples ===
-    print("###### clean the samples ######")
+    print("\n###### clean the samples ######")
     idx2probs = dict()
     for idx in idx2logits.keys():
         probs = idx2logits[idx]
@@ -237,7 +242,7 @@ def clean_samples(train_file, idx2logits, score_cf=0.5):
                 idx2prob_neg.append((linecnt, idx2probs[linecnt][0], idx2probs[linecnt][1]))
             linecnt += 1
 
-    print("there are {} positive, {} negative samples in total;".format(len(idx2prob_pos),
+    print("There are {} positive, {} negative samples in total;".format(len(idx2prob_pos),
                                                                         len(idx2prob_neg)))
 
     # idx2prob_neg = sorted(idx2prob_neg, key=lambda x: x[1])
@@ -277,7 +282,7 @@ def clean_samples(train_file, idx2logits, score_cf=0.5):
     wfp.close()
 
     print("###### clean the samples end! ######")
-
+    sys.stdout.flush()
     # return train_clean_pos_file, train_clean_neg_file
     return train_clean_pos_file, left_ratio
 
@@ -308,22 +313,23 @@ def denoise(args):
     train_neg_file = _get_all_negative_samples(train_file)
 
     for iter_c in range(iterations):
-        print("###### cross rank to clean samples, iter: {} ######".format(iter_c + 1))
+        print("\n###### cross rank to clean samples, Iter: {} ######".format(iter_c + 1))
         # cross rank
         iterstr = str(iter_c + 1)
         idxs2logtis_all = train_rounds(train_file, iterstr, args)
         train_clean_pos_file, left_ratio = clean_samples(train_file, idxs2logtis_all, args.score_cf)
+        os.remove(train_file)
 
         # concat new train_file
         pos_num = count_line_num(train_clean_pos_file)
         fname, fext = os.path.splitext(train_neg_file)
         train_clean_neg_file = fname + ".r" + str(pos_num) + fext
-        random_select_file_rows(train_neg_file, train_clean_neg_file, None, pos_num)
+        # random_select_file_rows(train_neg_file, train_clean_neg_file, None, pos_num)
+        select_negsamples_asposkmer(train_clean_pos_file, train_neg_file, train_clean_neg_file)
 
         fname, fext = os.path.splitext(args.train_file)
         train_file = fname + ".denoise" + str(iter_c + 1) + fext
         concat_two_files(train_clean_pos_file, train_clean_neg_file, concated_fp=train_file)
-
         os.remove(train_clean_neg_file)
         os.remove(train_clean_pos_file)
 
@@ -332,6 +338,7 @@ def denoise(args):
 
     os.remove(train_neg_file)
     total_end = time.time()
+    print("###### denoised file for training: {}".format(train_file))
     print("###### training totally costs {:.2f} seconds".format(total_end - total_start))
 
 
