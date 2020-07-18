@@ -325,16 +325,16 @@ def denoise(args):
         print("\n#####concat denoised file#####")
         pos_num = count_line_num(train_clean_pos_file)
         fname, fext = os.path.splitext(train_neg_file)
-        train_clean_neg_file = fname + ".r" + str(pos_num) + fext
-        # random_select_file_rows(train_neg_file, train_clean_neg_file, None, pos_num)
-        select_negsamples_asposkmer(train_clean_pos_file, train_neg_file, train_clean_neg_file)
+        train_seled_neg_file = fname + ".r" + str(pos_num) + fext
+        # random_select_file_rows(train_neg_file, train_seled_neg_file, None, pos_num)
+        select_negsamples_asposkmer(train_clean_pos_file, train_neg_file, train_seled_neg_file)
 
         fname, fext = os.path.splitext(args.train_file)
         train_file = fname + ".denoise" + str(iter_c + 1) + fext
-        concat_two_files(train_clean_pos_file, train_clean_neg_file, concated_fp=train_file)
-        os.remove(train_clean_neg_file)
+        concat_two_files(train_clean_pos_file, train_seled_neg_file, concated_fp=train_file)
+        os.remove(train_seled_neg_file)
         os.remove(train_clean_pos_file)
-        print("\n#####concat denoised file, finished!#####")
+        print("#####concat denoised file, finished!#####")
 
         if left_ratio > 0.99:
             break
