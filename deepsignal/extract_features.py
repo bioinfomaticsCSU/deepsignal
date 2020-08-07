@@ -26,7 +26,7 @@ from .utils.ref_reader import get_contig2len
 
 reads_group = 'Raw/Reads'
 queen_size_border = 2000
-time_wait = 5
+time_wait = 3
 # MAX_LEGAL_SIGNAL_NUM = 800  # 800 only for 17-mer
 
 key_sep = "||"

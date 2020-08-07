@@ -26,8 +26,10 @@ from .utils.process_utils import str2bool
 from .extract_features import _extract_features
 from .extract_features import _extract_preprocess
 
-queen_size_border = 1000
-time_wait = 5
+import uuid
+
+queen_size_border = 2000
+time_wait = 3
 
 
 def _read_features_file(features_file, features_batch_q, batch_num=512):
@@ -372,7 +374,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
 
     model_path = os.path.abspath(model_path)
     input_path = os.path.abspath(input_path)
-    success_file = input_path.rstrip("/") + ".success"
+    success_file = input_path.rstrip("/") + "." + str(uuid.uuid1()) + ".success"
     if os.path.exists(success_file):
         os.remove(success_file)
 
