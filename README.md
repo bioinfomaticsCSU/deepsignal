@@ -117,7 +117,7 @@ multi_to_single_fast5 -i $multi_read_fast5_dir -s $single_read_fast5_dir -t 30 -
 
 For the example data:
 ```bash
-# 1. basecall, cmd:
+# 1. basecall, cmd
 guppy_basecaller -i fast5s.al -r -s fast5s.al.guppy --config dna_r9.4.1_450bps_hac_prom.cfg
 # 2. proprecess fast5 if basecall results are saved in fastq format
 cat fast5s.al.guppy/*.fastq > fast5s.al.guppy.fastq
@@ -207,7 +207,7 @@ Peng Ni, Neng Huang, Zhi Zhang, De-Peng Wang, Fan Liang, Yu Miao, Chuan-Le Xiao,
 
 License
 =========
-Copyright (C) 2018 [Jianxin Wang](jxwang@mail.csu.edu.cn), [Feng Luo](luofeng@clemson.edu), [Peng Ni](nipeng@csu.edu.cn), [Neng Huang](huangneng@csu.edu.cn)
+Copyright (C) 2018 [Jianxin Wang](mailto:jxwang@mail.csu.edu.cn), [Feng Luo](mailto:luofeng@clemson.edu), [Peng Ni](mailto:nipeng@csu.edu.cn), [Neng Huang](mailto:huangneng@csu.edu.cn)
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
@@ -215,7 +215,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-[Jianxin Wang](jxwang@mail.csu.edu.cn), [Peng Ni](nipeng@csu.edu.cn), [Neng Huang](huangneng@csu.edu.cn), 
+[Jianxin Wang](mailto:jxwang@mail.csu.edu.cn), [Peng Ni](mailto:nipeng@csu.edu.cn), [Neng Huang](mailto:huangneng@csu.edu.cn),
 School of Information Science and Engineering, Central South University, Changsha 410083, China
 
-[Feng Luo](luofeng@clemson.edu), School of Computing, Clemson University, Clemson, SC 29634, USA
+[Feng Luo](mailto:luofeng@clemson.edu), School of Computing, Clemson University, Clemson, SC 29634, USA
