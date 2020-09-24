@@ -101,17 +101,17 @@ tombo preprocess annotate_raw_with_fastqs --fast5-basedir fast5s.al --fastq-file
 tombo resquiggle fast5s.al GCF_000146045.2_R64_genomic.fna --processes 10 --corrected-group RawGenomeCorrected_001 --basecall-group Basecall_1D_000 --overwrite
 # 3. deepsignal call_mods
 deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
-python /path/to/deepsignal/scripts/call_modification_frequency.py --input_path fast5s.al.CpG.call_mods.tsv --result_file fast5s.al.CpG.call_mods.frequency.tsv --prob_cf 0
+python /path/to/deepsignal/scripts/call_modification_frequency.py --input_path fast5s.al.CpG.call_mods.tsv --result_file fast5s.al.CpG.call_mods.frequency.tsv
 ```
 
 ## Usage
 #### 1. Basecall and re-squiggle
-Before run deepsignal, the raw reads must be basecalled ([Guppy or Albacore](https://nanoporetech.com/community)) and then be processed by the *re-squiggle* module of [tombo](https://github.com/nanoporetech/tombo).
+Before run deepsignal, the raw reads should be basecalled ([Guppy or Albacore](https://nanoporetech.com/community)) and then be processed by the *re-squiggle* module of [tombo](https://github.com/nanoporetech/tombo).
 
 Note:
 - If the fast5 files are in multi-read FAST5 format, please use _multi_to_single_fast5_ command from the [ont_fast5_api package](https://github.com/nanoporetech/ont_fast5_api) to convert the fast5 files first (Ref to [issue #173](https://github.com/nanoporetech/tombo/issues/173) in [tombo](https://github.com/nanoporetech/tombo)).
 ```bash
-multi_to_single_fast5 -i $multi_read_fast5_dir -s $single_read_fast5_dir -t 30 --recursive &
+multi_to_single_fast5 -i $multi_read_fast5_dir -s $single_read_fast5_dir -t 30 --recursive
 ```
 - If the basecall results are saved as fastq, run the [*tombo proprecess annotate_raw_with_fastqs*](https://nanoporetech.github.io/tombo/resquiggle.html) command before *re-squiggle*.
 
@@ -149,7 +149,7 @@ The extracted_features file is a tab-delimited text file in the following format
    - **methy_label**:   0/1, the label of the targeted base, for training
 
 #### 3. call modifications
-The extracted features can be used to call modifications as follows (If a GPU-machine is used, please set *--is_gpu* to "yes".):
+The extracted features can be used to call modifications as follows (If a GPU-machine is used, set *--is_gpu* to "yes".):
 ```bash
 # the CpGs are called by using the CpG model of HX1 R9.4 1D
 deepsignal call_mods --input_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --nproc 10 --is_gpu no
@@ -157,7 +157,10 @@ deepsignal call_mods --input_path fast5s.al.CpG.signal_features.17bases.rawsigna
 
 **The modifications can also be called from the fast5 files directly**:
 ```bash
+# use CPU
 deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
+# or use GPU
+CUDA_VISIBLE_DEVICES=0 deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu yes
 ```
 
 The modification_call file is a tab-delimited text file in the following format:
@@ -200,7 +203,7 @@ deepsignal train --train_file /path/to/train_data/file --valid_file /path/to/val
 
 Publication
 ===========
-Peng Ni, Neng Huang, Zhi Zhang, De-Peng Wang, Fan Liang, Yu Miao, Chuan-Le Xiao, Feng Luo, and Jianxin Wang, "DeepSignal: detecting DNA methylation state from Nanopore sequencing reads using deep-learning.", Bioinformatics, 2019. [doi:10.1093/bioinformatics/btz276](https://doi.org/10.1093/bioinformatics/btz276)
+Peng Ni, Neng Huang, Zhi Zhang, De-Peng Wang, Fan Liang, Yu Miao, Chuan-Le Xiao, Feng Luo, and Jianxin Wang, "DeepSignal: detecting DNA methylation state from Nanopore sequencing reads using deep-learning.", Bioinformatics 35, no. 22 (2019): 4586-4595. [doi:10.1093/bioinformatics/btz276](https://doi.org/10.1093/bioinformatics/btz276)
 
 License
 =========
