@@ -5,6 +5,12 @@ deepsignal
 Documentation
 -------------
 
+v0.1.8
+-------------
+modify denoise module
+fix success_file bug
+update README
+
 v0.1.7
 -------------
 Prevent Queue.qsize() from raising NotImplementedError on Mac OS X (github: vterron/lemon@9ca6b4b)

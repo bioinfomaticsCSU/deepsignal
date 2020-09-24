@@ -109,10 +109,12 @@ def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_gr
                             basecall_subgroup, normalize_method,
                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
                             methy_label, batch_num, positions):
-    while not fast5s_q.empty():
-        try:
-            fast5s = fast5s_q.get()
-        except Exception:
+    while True:
+        if fast5s_q.empty():
+            time.sleep(time_wait)
+        fast5s = fast5s_q.get()
+        if fast5s == "kill":
+            fast5s_q.put("kill")
             break
         features_batches, error = _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup,
                                                              normalize_method, motif_seqs, methyloc,
@@ -218,10 +220,12 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
         accuracy_list = []
         count = 0
 
-        while not fast5s_q.empty():
-            try:
-                fast5s = fast5s_q.get()
-            except Exception:
+        while True:
+            if fast5s_q.empty():
+                time.sleep(time_wait)
+            fast5s = fast5s_q.get()
+            if fast5s == "kill":
+                fast5s_q.put("kill")
                 break
             features_batches, error = _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup,
                                                                  normalize_method, motif_seqs, methyloc,
@@ -268,6 +272,7 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
     if nproc > 1:
         nproc -= 1
 
+    fast5s_q.put("kill")
     pred_str_procs = []
     for _ in range(nproc):
         p = mp.Process(target=_fast5s_q_to_pred_str_q, args=(fast5s_q, errornum_q, pred_str_q,
@@ -323,6 +328,7 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
     elif nproc > 2:
         nproc -= 1
 
+    fast5s_q.put("kill")
     features_batch_procs = []
     for _ in range(nproc - 1):
         p = mp.Process(target=_read_features_fast5s_q, args=(fast5s_q, features_batch_q, errornum_q,

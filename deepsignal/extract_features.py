@@ -304,10 +304,10 @@ def get_a_batch_features_str(fast5s_q, featurestr_q, errornum_q,
                              corrected_group, basecall_subgroup, normalize_method,
                              motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len, methy_label,
                              positions):
-    while not fast5s_q.empty():
-        try:
-            fast5s = fast5s_q.get()
-        except Exception:
+    while True:
+        fast5s = fast5s_q.get()
+        if fast5s == "kill":
+            fast5s_q.put("kill")
             break
         features_list, error_num = _extract_features(fast5s, corrected_group, basecall_subgroup,
                                                      normalize_method, motif_seqs, methyloc,
@@ -428,6 +428,7 @@ def extract_features(fast5_dir, is_recursive, reference_path, is_dna,
     featurestr_procs = []
     if nproc > 1:
         nproc -= 1
+    fast5s_q.put("kill")
     for _ in range(nproc):
         p = mp.Process(target=get_a_batch_features_str, args=(fast5s_q, featurestr_q, errornum_q,
                                                               corrected_group, basecall_subgroup,
