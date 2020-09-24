@@ -117,7 +117,7 @@ multi_to_single_fast5 -i $multi_read_fast5_dir -s $single_read_fast5_dir -t 30 -
 
 For the example data:
 ```bash
-# 1. basecall, cmd
+# 1. basecall
 guppy_basecaller -i fast5s.al -r -s fast5s.al.guppy --config dna_r9.4.1_450bps_hac_prom.cfg
 # 2. proprecess fast5 if basecall results are saved in fastq format
 cat fast5s.al.guppy/*.fastq > fast5s.al.guppy.fastq
