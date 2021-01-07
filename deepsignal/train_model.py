@@ -162,10 +162,16 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
 
                 accu_batch = metrics.accuracy_score(
                     y_true=b_label, y_pred=train_prediction)
-                recall_batch = metrics.recall_score(
-                    y_true=b_label, y_pred=train_prediction)
-                precision_batch = metrics.precision_score(
-                    y_true=b_label, y_pred=train_prediction)
+                if class_num == 2:
+                    recall_batch = metrics.recall_score(
+                        y_true=b_label, y_pred=train_prediction)
+                    precision_batch = metrics.precision_score(
+                        y_true=b_label, y_pred=train_prediction)
+                else:
+                    recall_batch = metrics.recall_score(
+                        y_true=b_label, y_pred=train_prediction, average='micro')
+                    precision_batch = metrics.precision_score(
+                        y_true=b_label, y_pred=train_prediction, average='micro')
 
                 train_loss_total.append(train_loss)
                 train_accuracy_total.append(accu_batch)
@@ -205,10 +211,16 @@ def train(train_file, valid_file, model_dir, log_dir, kmer_len, cent_signals_len
 
                         accu_batch = metrics.accuracy_score(
                             y_true=v_label, y_pred=test_prediction)
-                        recall_batch = metrics.recall_score(
-                            y_true=v_label, y_pred=test_prediction)
-                        precision_batch = metrics.precision_score(
-                            y_true=v_label, y_pred=test_prediction)
+                        if class_num == 2:
+                            recall_batch = metrics.recall_score(
+                                y_true=v_label, y_pred=test_prediction)
+                            precision_batch = metrics.precision_score(
+                                y_true=v_label, y_pred=test_prediction)
+                        else:
+                            recall_batch = metrics.recall_score(
+                                y_true=v_label, y_pred=test_prediction, average='micro')
+                            precision_batch = metrics.precision_score(
+                                y_true=v_label, y_pred=test_prediction, average='micro')
 
                         test_loss_total.append(test_loss)
                         test_accuracy_total.append(accu_batch)
