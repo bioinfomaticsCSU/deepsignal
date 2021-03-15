@@ -1,3 +1,7 @@
+# News
+- 2021.03.15: We developed [deepsignal2](https://github.com/PengNi/deepsignal2). Compared to deepsignal, deepsignal2 has much smaller DNN model in size, and similar performance in 5mCpG detection of human.
+
+
 # DeepSignal
 
 [![Python](https://img.shields.io/pypi/pyversions/deepsignal)](https://www.python.org/)
