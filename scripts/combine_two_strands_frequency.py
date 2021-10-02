@@ -47,7 +47,7 @@ def get_refloc_of_methysite_in_motif(seqstr, motif='CG', methyloc_in_motif=0):
     return sites
 
 
-def combine_fb_of_deepreport(report_fp, cgposes):
+def combine_fb_of_freqtxt(report_fp, cgposes):
     pos2info = {}
     for cgpos in cgposes:
         pos2info[cgpos] = [0.0, 0.0, 0, 0, 0, 0.0, '']
@@ -58,7 +58,13 @@ def combine_fb_of_deepreport(report_fp, cgposes):
             keytmp = (words[0], int(words[1]))
             if words[2] == '-':
                 keytmp = (words[0], int(words[1]) - 1)
+                if keytmp not in cgposes:
+                    print("{}, not in selected motif poses of the genome".format(words))
+                    continue
             else:
+                if keytmp not in cgposes:
+                    print("{}, not in selected motif poses of the genome".format(words))
+                    continue
                 pos2info[keytmp][6] += words[10]
             prob0, prob1, met, unmet, coverage = float(words[4]), float(words[5]), \
                 int(words[6]), int(words[7]), int(words[8])
@@ -79,6 +85,41 @@ def combine_fb_of_deepreport(report_fp, cgposes):
     return mposinfo
 
 
+def combine_fb_of_bed(report_fp, cgposes):
+    pos2info = {}
+    for cgpos in cgposes:
+        pos2info[cgpos] = [0, 0.0, 0.0]  # coverage, met, rmet
+    with open(report_fp, "r") as rf:
+        # next(rf)
+        for line in rf:
+            words = line.strip().split('\t')
+            keytmp = (words[0], int(words[1]))
+            if words[5] == '-':
+                keytmp = (words[0], int(words[1]) - 1)
+            if keytmp not in cgposes:
+                print("{}, not in selected motif poses of the genome".format(words))
+                continue
+            coverage, met = int(words[9]), float(words[10]) / 100 * int(words[9])
+            try:
+                pos2info[keytmp][0] += coverage
+                pos2info[keytmp][1] += met
+            except KeyError:
+                pass
+    for cgpos in list(pos2info.keys()):
+        if pos2info[cgpos][0] == 0:
+            del pos2info[cgpos]
+        else:
+            pos2info[cgpos][2] = float(pos2info[cgpos][1]) / pos2info[cgpos][0]
+    mposinfo = []
+    for cgpos in pos2info.keys():
+        chrom, fpos = cgpos[0], cgpos[1]
+        mposinfo.append([chrom, fpos, fpos+1, ".", pos2info[cgpos][0], "+",
+                         fpos, fpos+1, "0,0,0", pos2info[cgpos][0],
+                         int(round(pos2info[cgpos][2], 2) * 100)])
+    mposinfo = sorted(mposinfo, key=lambda x: (x[0], x[1]))
+    return mposinfo
+
+
 def write_mpos2covinfo_deep(mclist, reportfp):
     with open(reportfp, 'w') as wf:
         # wf.write('\t'.join(['chromosome', 'pos', 'strand', 'pos_in_strand', 'prob0', 'prob1',
@@ -90,7 +131,8 @@ def write_mpos2covinfo_deep(mclist, reportfp):
 
 def main():
     parser = argparse.ArgumentParser("combine modification_frequency of CG in forward and backward strand")
-    parser.add_argument("--frequency_fp", help="the call_modification_frequency file path",
+    parser.add_argument("--frequency_fp", help="the call_modification_frequency file path, "
+                                               "in freq.txt or .bed format",
                         type=str, required=True)
     parser.add_argument('-r', "--ref_fp", help="the file path of genome reference",
                         type=str, required=True)
@@ -133,7 +175,10 @@ def main():
     fname, fext = os.path.splitext(report_fp)
     wfp = fname + '.fb_combined' + fext
 
-    mposinfo = combine_fb_of_deepreport(report_fp, contig_cg_poses)
+    if not str(report_fp).lower().endswith(".bed"):
+        mposinfo = combine_fb_of_freqtxt(report_fp, contig_cg_poses)
+    else:
+        mposinfo = combine_fb_of_bed(report_fp, contig_cg_poses)
     write_mpos2covinfo_deep(mposinfo, wfp)
 
 
