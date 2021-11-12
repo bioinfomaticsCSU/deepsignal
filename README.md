@@ -46,7 +46,7 @@ conda deactivate
 The virtual environment can also be created by using [virtualenv](https://github.com/pypa/virtualenv/).
 
 #### 2. Install deepsignal
-- After creating and activating the environment, download and install deepsignal (**lastest version**) from github:
+- After creating and activating the environment, download and install deepsignal (**latest version**) from github:
 ```bash
 git clone https://github.com/bioinfomaticsCSU/deepsignal.git
 cd deepsignal

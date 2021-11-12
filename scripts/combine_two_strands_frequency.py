@@ -50,7 +50,7 @@ def get_refloc_of_methysite_in_motif(seqstr, motif='CG', methyloc_in_motif=0):
 def combine_fb_of_freqtxt(report_fp, cgposes):
     pos2info = {}
     for cgpos in cgposes:
-        pos2info[cgpos] = [0.0, 0.0, 0, 0, 0, 0.0, '']
+        pos2info[cgpos] = [0.0, 0.0, 0, 0, 0, 0.0, '-']
     with open(report_fp, "r") as rf:
         # next(rf)
         for line in rf:
@@ -65,7 +65,7 @@ def combine_fb_of_freqtxt(report_fp, cgposes):
                 if keytmp not in cgposes:
                     print("{}, not in selected motif poses of the genome".format(words))
                     continue
-                pos2info[keytmp][6] += words[10]
+                pos2info[keytmp][6] = words[10]
             prob0, prob1, met, unmet, coverage = float(words[4]), float(words[5]), \
                 int(words[6]), int(words[7]), int(words[8])
             pos2info[keytmp][0] += prob0

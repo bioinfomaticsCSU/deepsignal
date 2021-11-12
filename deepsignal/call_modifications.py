@@ -513,10 +513,10 @@ def main():
                       default="mad", required=False,
                       help="the way for normalizing signals in read level. "
                            "mad or zscore, default mad")
-    p_f5.add_argument("--methy_label", action="store", type=int,
-                      choices=[1, 0], required=False, default=1,
-                      help="the label of the interested modified bases, this is for training."
-                           " 0 or 1, default 1")
+    # p_f5.add_argument("--methy_label", action="store", type=int,
+    #                   choices=[1, 0], required=False, default=1,
+    #                   help="the label of the interested modified bases, this is for training."
+    #                        " 0 or 1, default 1")
     p_f5.add_argument("--motifs", action="store", type=str,
                       required=False, default='CG',
                       help='motif seq to be extracted, default: CG. '
@@ -575,7 +575,8 @@ def main():
     normalize_method = args.normalize_method
     motifs = args.motifs
     mod_loc = args.mod_loc
-    methy_label = args.methy_label
+    # methy_label = args.methy_label
+    methy_label = 1
     f5_batch_num = args.f5_batch_num
     position_file = args.positions
 
