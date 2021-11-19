@@ -7,7 +7,9 @@ Documentation
 
 v0.1.9
 ------
-enable multi-class (>=3) training/predicting
+enable multi-class (>=3) training/predicting,
+
+fix bug of extrating contig name from fast5s
 
 v0.1.8
 ------

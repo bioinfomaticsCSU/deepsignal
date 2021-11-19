@@ -44,7 +44,7 @@ setup(
     keywords=['methylation', 'nanopore', 'neural network'],
     version=find_version('deepsignal', '__init__.py'),
     url='https://github.com/bioinfomaticsCSU/deepsignal',
-    download_url='https://github.com/bioinfomaticsCSU/deepsignal/archive/v0.1.8.tar.gz',
+    download_url='https://github.com/bioinfomaticsCSU/deepsignal/archive/v0.1.9.tar.gz',
     license='GNU General Public License v3 (GPLv3)',
     author='Peng Ni, Neng Huang',
     # tests_require=['pytest'],
