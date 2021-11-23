@@ -101,7 +101,7 @@ To call modifications, the raw fast5 files should be basecalled ([Guppy or Albac
 guppy_basecaller -i fast5s.al -r -s fast5s.al.guppy --config dna_r9.4.1_450bps_hac_prom.cfg
 cat fast5s.al.guppy/*.fastq > fast5s.al.guppy.fastq
 # 2. tombo resquiggle
-tombo preprocess annotate_raw_with_fastqs --fast5-basedir fast5s.al --fastq-filenames fast5s.al.guppy.fastq --basecall-group Basecall_1D_000 --basecall-subgroup BaseCalled_template --overwrite --processes 10
+tombo preprocess annotate_raw_with_fastqs --fast5-basedir fast5s.al --fastq-filenames fast5s.al.guppy.fastq --sequencing-summary-filenames fast5s.al.guppy/sequencing_summary.txt --basecall-group Basecall_1D_000 --basecall-subgroup BaseCalled_template --overwrite --processes 10
 tombo resquiggle fast5s.al GCF_000146045.2_R64_genomic.fna --processes 10 --corrected-group RawGenomeCorrected_001 --basecall-group Basecall_1D_000 --overwrite
 # 3. deepsignal call_mods
 deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
@@ -125,7 +125,7 @@ For the example data:
 guppy_basecaller -i fast5s.al -r -s fast5s.al.guppy --config dna_r9.4.1_450bps_hac_prom.cfg
 # 2. proprecess fast5 if basecall results are saved in fastq format
 cat fast5s.al.guppy/*.fastq > fast5s.al.guppy.fastq
-tombo preprocess annotate_raw_with_fastqs --fast5-basedir fast5s.al --fastq-filenames fast5s.al.guppy.fastq --basecall-group Basecall_1D_000 --basecall-subgroup BaseCalled_template --overwrite --processes 10
+tombo preprocess annotate_raw_with_fastqs --fast5-basedir fast5s.al --fastq-filenames fast5s.al.guppy.fastq --sequencing-summary-filenames fast5s.al.guppy/sequencing_summary.txt --basecall-group Basecall_1D_000 --basecall-subgroup BaseCalled_template --overwrite --processes 10
 # 3. resquiggle, cmd: tombo resquiggle $fast5_dir $reference_fa
 tombo resquiggle fast5s.al GCF_000146045.2_R64_genomic.fna --processes 10 --corrected-group RawGenomeCorrected_001 --basecall-group Basecall_1D_000 --overwrite
 ```

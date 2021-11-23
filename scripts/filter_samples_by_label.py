@@ -2,18 +2,10 @@
 import argparse
 import os
 
-from txt_formater import DNAReference
-
 
 def str2bool(v):
     # susendberg's function
     return v.lower() in ("yes", "true", "t", "1")
-
-
-def get_ref_seq_len(ref_path):
-    reffa = DNAReference(ref_path)
-    fseq = reffa.getcontigs()[reffa.getcontignames()[0]]
-    return len(fseq)
 
 
 def filter_one_signal_feature_file(sf_fp, wfp, label):
