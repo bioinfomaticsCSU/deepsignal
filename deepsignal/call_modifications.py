@@ -33,6 +33,7 @@ time_wait = 3
 
 
 def _read_features_file(features_file, features_batch_q, batch_num=512):
+    print('read_features process {} starts'.format(os.getpid()))
     with open(features_file, "r") as rf:
         sampleinfo = []  # contains: chromosome, pos, strand, pos_in_strand, read_name, read_strand
         kmers = []
@@ -70,6 +71,7 @@ def _read_features_file(features_file, features_batch_q, batch_num=512):
             features_batch_q.put((sampleinfo, kmers, base_means, base_stds,
                                   base_signal_lens, cent_signals, labels))
     features_batch_q.put("kill")
+    print('read_features process {} ending'.format(os.getpid()))
 
 
 def _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup, normalize_method,
@@ -109,6 +111,7 @@ def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_gr
                             basecall_subgroup, normalize_method,
                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
                             methy_label, batch_num, positions):
+    print('read_fast5 process {} starts'.format(os.getpid()))
     while True:
         if fast5s_q.empty():
             time.sleep(time_wait)
@@ -125,6 +128,7 @@ def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_gr
             features_batch_q.put(features_batch)
         while features_batch_q.qsize() > queen_size_border:
             time.sleep(time_wait)
+    print('read_fast5 process {} ending'.format(os.getpid()))
 
 
 def _call_mods(features_batch, tf_sess, model, init_learning_rate):
@@ -163,7 +167,7 @@ def _call_mods_q(init_learning_rate, class_num, model_path,
                  base_num, signal_num, features_batch_q, pred_str_q,
                  success_file,
                  is_rnn, is_base, is_cnn):
-
+    print('call_mods process {} starts'.format(os.getpid()))
     model = Model(base_num=base_num,
                   signal_num=signal_num, class_num=class_num,
                   is_cnn=is_cnn, is_rnn=is_rnn, is_base=is_base)
@@ -206,6 +210,7 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
                             init_learning_rate, class_num, model_path,
                             positions,
                             is_rnn, is_base, is_cnn):
+    print('call_mods process {} starts'.format(os.getpid()))
     model = Model(base_num=kmer_len,
                   signal_num=raw_signals_len, class_num=class_num,
                   is_cnn=is_cnn, is_rnn=is_rnn, is_base=is_base)
@@ -243,6 +248,7 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
 
 
 def _write_predstr_to_file(write_fp, predstr_q):
+    print('write process {} starts'.format(os.getpid()))
     with open(write_fp, 'w') as wf:
         while True:
             # during test, it's ok without the sleep()
@@ -255,6 +261,7 @@ def _write_predstr_to_file(write_fp, predstr_q):
             for one_pred_str in pred_str:
                 wf.write(one_pred_str + "\n")
             wf.flush()
+    print('write process {} ending'.format(os.getpid()))
 
 
 def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
