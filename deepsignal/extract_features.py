@@ -25,8 +25,8 @@ from .utils.process_utils import get_motif_seqs
 from .utils.ref_reader import get_contig2len
 
 reads_group = 'Raw/Reads'
-queen_size_border = 2000
-time_wait = 3
+queen_size_border = 1000
+time_wait = 1
 # MAX_LEGAL_SIGNAL_NUM = 800  # 800 only for 17-mer
 
 key_sep = "||"

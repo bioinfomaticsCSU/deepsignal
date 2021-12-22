@@ -240,6 +240,9 @@ def main():
                           help="the input path, can be a signal_feature file from extract_features.py, "
                                "or a directory of fast5 files. If a directory of fast5 files is provided, "
                                "args in FAST5_EXTRACTION should (reference_path must) be provided.")
+    sc_input.add_argument("--f5_batch_num", action="store", type=int, default=20,
+                          required=False,
+                          help="number of reads/files to be processed by each process one time, default 20")
 
     sc_call = sub_call_mods.add_argument_group("CALL")
     sc_call.add_argument("--model_path", "-m", action="store", type=str, required=True,
@@ -305,9 +308,6 @@ def main():
                             'the same')
     sc_f5.add_argument("--mod_loc", action="store", type=int, required=False, default=0,
                        help='0-based location of the targeted base in the motif, default 0')
-    sc_f5.add_argument("--f5_batch_num", action="store", type=int, default=100,
-                       required=False,
-                       help="number of files to be processed by each process one time, default 100")
     sc_f5.add_argument("--positions", action="store", type=str,
                        required=False, default=None,
                        help="file with a list of positions interested (must be formatted as tab-separated file"

@@ -4,6 +4,9 @@ deepsignal
 
 Documentation
 -------------
+v0.1.10
+-------
+make sure results of each read be written together in call_mods' output
 
 v0.1.9
 ------

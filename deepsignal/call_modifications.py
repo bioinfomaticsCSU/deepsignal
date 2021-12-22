@@ -28,12 +28,13 @@ from .extract_features import _extract_preprocess
 
 import uuid
 
-queen_size_border = 2000
-time_wait = 3
+queen_size_border = 100
+time_wait = 1
 
 
-def _read_features_file(features_file, features_batch_q, batch_num=512):
+def _read_features_file(features_file, features_batch_q, f5_batch_num=20):
     print('read_features process {} starts'.format(os.getpid()))
+    r_num = 0
     with open(features_file, "r") as rf:
         sampleinfo = []  # contains: chromosome, pos, strand, pos_in_strand, read_name, read_strand
         kmers = []
@@ -43,8 +44,36 @@ def _read_features_file(features_file, features_batch_q, batch_num=512):
         cent_signals = []
         labels = []
 
+        line = next(rf)
+        words = line.strip().split("\t")
+        readid_pre = words[4]
+
+        sampleinfo.append("\t".join(words[0:6]))
+        kmers.append([base2code_dna[x] for x in words[6]])
+        base_means.append([float(x) for x in words[7].split(",")])
+        base_stds.append([float(x) for x in words[8].split(",")])
+        base_signal_lens.append([int(x) for x in words[9].split(",")])
+        cent_signals.append([float(x) for x in words[10].split(",")])
+        labels.append(int(words[11]))
+
         for line in rf:
             words = line.strip().split("\t")
+            readidtmp = words[4]
+            if readidtmp != readid_pre:
+                r_num += 1
+                readid_pre = readidtmp
+                if r_num % f5_batch_num == 0:
+                    features_batch_q.put((sampleinfo, kmers, base_means, base_stds,
+                                          base_signal_lens, cent_signals, labels))
+                    while features_batch_q.qsize() > queen_size_border:
+                        time.sleep(time_wait)
+                    sampleinfo = []
+                    kmers = []
+                    base_means = []
+                    base_stds = []
+                    base_signal_lens = []
+                    cent_signals = []
+                    labels = []
 
             sampleinfo.append("\t".join(words[0:6]))
 
@@ -54,19 +83,7 @@ def _read_features_file(features_file, features_batch_q, batch_num=512):
             base_signal_lens.append([int(x) for x in words[9].split(",")])
             cent_signals.append([float(x) for x in words[10].split(",")])
             labels.append(int(words[11]))
-
-            if len(sampleinfo) == batch_num:
-                features_batch_q.put((sampleinfo, kmers, base_means, base_stds,
-                                      base_signal_lens, cent_signals, labels))
-                while features_batch_q.qsize() > queen_size_border:
-                    time.sleep(time_wait)
-                sampleinfo = []
-                kmers = []
-                base_means = []
-                base_stds = []
-                base_signal_lens = []
-                cent_signals = []
-                labels = []
+        r_num += 1
         if len(sampleinfo) > 0:
             features_batch_q.put((sampleinfo, kmers, base_means, base_stds,
                                   base_signal_lens, cent_signals, labels))
@@ -76,41 +93,39 @@ def _read_features_file(features_file, features_batch_q, batch_num=512):
 
 def _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup, normalize_method,
                                motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
-                               methy_label, batch_num=512, positions=None):
+                               methy_label, positions=None):
     features_list, error = _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_method,
                                              motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
                                              methy_label, positions)
     features_batches = []
-    for i in np.arange(0, len(features_list), batch_num):
-        sampleinfo = []  # contains: chromosome, pos, strand, pos_in_strand, read_name, read_strand
-        kmers = []
-        base_means = []
-        base_stds = []
-        base_signal_lens = []
-        cent_signals = []
-        labels = []
 
-        for features in features_list[i:(i + batch_num)]:
-            chrom, pos, alignstrand, loc_in_ref, readname, strand, k_mer, signal_means, signal_stds, \
-                signal_lens, kmer_cent_signals, f_methy_label = features
+    sampleinfo = []  # contains: chromosome, pos, strand, pos_in_strand, read_name, read_strand
+    kmers = []
+    base_means = []
+    base_stds = []
+    base_signal_lens = []
+    cent_signals = []
+    labels = []
+    for features in features_list:
+        chrom, pos, alignstrand, loc_in_ref, readname, strand, k_mer, signal_means, signal_stds, \
+            signal_lens, kmer_cent_signals, f_methy_label = features
 
-            sampleinfo.append("\t".join([chrom, str(pos), alignstrand, str(loc_in_ref), readname, strand]))
-            kmers.append([base2code_dna[x] for x in k_mer])
-            base_means.append(signal_means)
-            base_stds.append(signal_stds)
-            base_signal_lens.append(signal_lens)
-            cent_signals.append(kmer_cent_signals)
-            labels.append(f_methy_label)
-        if len(sampleinfo) > 0:
-            features_batches.append((sampleinfo, kmers, base_means, base_stds,
-                                     base_signal_lens, cent_signals, labels))
+        sampleinfo.append("\t".join([chrom, str(pos), alignstrand, str(loc_in_ref), readname, strand]))
+        kmers.append([base2code_dna[x] for x in k_mer])
+        base_means.append(signal_means)
+        base_stds.append(signal_stds)
+        base_signal_lens.append(signal_lens)
+        cent_signals.append(kmer_cent_signals)
+        labels.append(f_methy_label)
+    features_batches.append((sampleinfo, kmers, base_means, base_stds,
+                             base_signal_lens, cent_signals, labels))
     return features_batches, error
 
 
 def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_group,
                             basecall_subgroup, normalize_method,
                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
-                            methy_label, batch_num, positions):
+                            methy_label, positions):
     print('read_fast5 process {} starts'.format(os.getpid()))
     while True:
         if fast5s_q.empty():
@@ -122,7 +137,7 @@ def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_gr
         features_batches, error = _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup,
                                                              normalize_method, motif_seqs, methyloc,
                                                              chrom2len, kmer_len, raw_signals_len, methy_label,
-                                                             batch_num, positions)
+                                                             positions)
         errornum_q.put(error)
         for features_batch in features_batches:
             features_batch_q.put(features_batch)
@@ -131,42 +146,59 @@ def _read_features_fast5s_q(fast5s_q, features_batch_q, errornum_q, corrected_gr
     print('read_fast5 process {} ending'.format(os.getpid()))
 
 
-def _call_mods(features_batch, tf_sess, model, init_learning_rate):
+def _call_mods(features_batch, tf_sess, model, init_learning_rate, batch_size):
     sampleinfo, kmers, base_means, base_stds, base_signal_lens, \
         cent_signals, labels = features_batch
     labels = np.reshape(labels, (len(labels)))
 
-    feed_dict = {model.base_int: kmers,
-                 model.means: base_means,
-                 model.stds: base_stds,
-                 model.sanums: base_signal_lens,
-                 model.signals: cent_signals,
-                 model.labels: labels,
-                 model.lr: init_learning_rate,
-                 model.training: False,
-                 model.keep_prob: 1.0}
-    activation_logits, prediction = tf_sess.run(
-        [model.activation_logits, model.prediction], feed_dict=feed_dict)
-    accuracy = metrics.accuracy_score(
-        y_true=labels, y_pred=prediction)
-
     pred_str = []
-    for idx in range(labels.shape[0]):
-        # chromosome, pos, strand, pos_in_strand, read_name, read_strand, prob_0, prob_1, called_label, seq
-        prob_0, prob_1 = activation_logits[idx][0], activation_logits[idx][1]
-        prob_0_norm = prob_0 / (prob_0 + prob_1)
-        prob_1_norm = prob_1 / (prob_0 + prob_1)
-        pred_str.append("\t".join([sampleinfo[idx], str(prob_0_norm),
-                                   str(prob_1_norm), str(prediction[idx]),
-                                   ''.join([code2base_dna[x] for x in kmers[idx]])]))
+    accuracys = []
+    batch_num = 0
+    for i in np.arange(0, len(sampleinfo), batch_size):
+        batch_s, batch_e = i, i + batch_size
 
-    return pred_str, accuracy
+        b_sampleinfo = sampleinfo[batch_s:batch_e]
+        b_kmers = kmers[batch_s:batch_e]
+        b_base_means = base_means[batch_s:batch_e]
+        b_base_stds = base_stds[batch_s:batch_e]
+        b_base_signal_lens = base_signal_lens[batch_s:batch_e]
+        b_cent_signals = cent_signals[batch_s:batch_e]
+        b_labels = labels[batch_s:batch_e]
+        if len(b_sampleinfo) > 0:
+            feed_dict = {model.base_int: b_kmers,
+                         model.means: b_base_means,
+                         model.stds: b_base_stds,
+                         model.sanums: b_base_signal_lens,
+                         model.signals: b_cent_signals,
+                         model.labels: b_labels,
+                         model.lr: init_learning_rate,
+                         model.training: False,
+                         model.keep_prob: 1.0}
+            activation_logits, prediction = tf_sess.run(
+                [model.activation_logits, model.prediction], feed_dict=feed_dict)
+            accuracy = metrics.accuracy_score(
+                y_true=labels, y_pred=prediction)
+            accuracys.append(accuracy)
+
+            for idx in range(labels.shape[0]):
+                # chromosome, pos, strand, pos_in_strand, read_name, read_strand, prob_0, prob_1, called_label, seq
+                prob_0, prob_1 = activation_logits[idx][0], activation_logits[idx][1]
+                prob_0_norm = prob_0 / (prob_0 + prob_1)
+                prob_1_norm = prob_1 / (prob_0 + prob_1)
+                pred_str.append("\t".join([sampleinfo[idx], str(prob_0_norm),
+                                           str(prob_1_norm), str(prediction[idx]),
+                                           ''.join([code2base_dna[x] for x in kmers[idx]])]))
+            batch_num += 1
+    accuracy = np.mean(accuracys)
+
+    return pred_str, accuracy, batch_num
 
 
 def _call_mods_q(init_learning_rate, class_num, model_path,
                  base_num, signal_num, features_batch_q, pred_str_q,
                  success_file,
-                 is_rnn, is_base, is_cnn):
+                 is_rnn, is_base, is_cnn,
+                 batch_size):
     print('call_mods process {} starts'.format(os.getpid()))
     model = Model(base_num=base_num,
                   signal_num=signal_num, class_num=class_num,
@@ -194,11 +226,12 @@ def _call_mods_q(init_learning_rate, class_num, model_path,
                 open(success_file, 'w').close()
                 break
 
-            pred_str, accuracy = _call_mods(features_batch, sess, model, init_learning_rate)
+            pred_str, accuracy, batch_num = _call_mods(features_batch, sess, model, init_learning_rate,
+                                                       batch_size)
 
             pred_str_q.put(pred_str)
             accuracy_list.append(accuracy)
-            count += 1
+            count += batch_num
         # print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
         print('call_mods process {} ending, proceed {} batches'.format(os.getpid(), count))
 
@@ -235,14 +268,14 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
             features_batches, error = _read_features_from_fast5s(fast5s, corrected_group, basecall_subgroup,
                                                                  normalize_method, motif_seqs, methyloc,
                                                                  chrom2len, kmer_len, raw_signals_len, methy_label,
-                                                                 batch_num, positions)
+                                                                 positions)
             errornum_q.put(error)
             for features_batch in features_batches:
-                pred_str, accuracy = _call_mods(features_batch, sess, model, init_learning_rate)
+                pred_str, accuracy, batch_num = _call_mods(features_batch, sess, model, init_learning_rate, batch_num)
 
                 pred_str_q.put(pred_str)
                 accuracy_list.append(accuracy)
-                count += 1
+                count += batch_num
         # print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
         print('call_mods process {} ending, proceed {} batches'.format(os.getpid(), count))
 
@@ -342,14 +375,15 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
                                                              corrected_group, basecall_subgroup,
                                                              normalize_method, motif_seqs, mod_loc,
                                                              chrom2len, kmer_len, cent_signals_len,
-                                                             methy_label, batch_size, positions))
+                                                             methy_label, positions))
         p.daemon = True
         p.start()
         features_batch_procs.append(p)
 
     p_call_mods_gpu = mp.Process(target=_call_mods_q, args=(learning_rate, class_num, model_path,
                                                             kmer_len, cent_signals_len, features_batch_q,
-                                                            pred_str_q, success_file, is_rnn, is_base, is_cnn))
+                                                            pred_str_q, success_file, is_rnn, is_base, is_cnn,
+                                                            batch_size))
     p_call_mods_gpu.daemon = True
     p_call_mods_gpu.start()
 
@@ -391,10 +425,10 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
     if os.path.exists(success_file):
         os.remove(success_file)
 
-    if os.path.isdir(input_path):
-        is_recursive, corrected_group, basecall_subgroup, reference_path, is_dna, \
-            normalize_method, motifs, mod_loc, methy_label, f5_batch_num, position_file = f5_args
+    is_recursive, corrected_group, basecall_subgroup, reference_path, is_dna, \
+        normalize_method, motifs, mod_loc, methy_label, f5_batch_num, position_file = f5_args
 
+    if os.path.isdir(input_path):
         motif_seqs, chrom2len, fast5s_q, len_fast5s, positions = _extract_preprocess(input_path, is_recursive,
                                                                                      motifs, is_dna,
                                                                                      reference_path, f5_batch_num,
@@ -416,7 +450,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
     else:
         # features_batch_q = mp.Queue()
         features_batch_q = Queue()
-        p_rf = mp.Process(target=_read_features_file, args=(input_path, features_batch_q, batch_size))
+        p_rf = mp.Process(target=_read_features_file, args=(input_path, features_batch_q, f5_batch_num))
         p_rf.daemon = True
         p_rf.start()
 
@@ -435,7 +469,8 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
         for _ in range(nproc_tf):
             p = mp.Process(target=_call_mods_q, args=(learning_rate, class_num, model_path,
                                                       kmer_len, cent_signals_len, features_batch_q,
-                                                      pred_str_q, success_file, is_rnn, is_base, is_cnn))
+                                                      pred_str_q, success_file, is_rnn, is_base, is_cnn,
+                                                      batch_size))
             p.daemon = True
             p.start()
             predstr_procs.append(p)
@@ -469,6 +504,9 @@ def main():
                          help="the input path, can be a signal_feature file from extract_features.py, "
                               "or a directory of fast5 files. If a directory of fast5 files is provided, "
                               "args in FAST5_EXTRACTION should (reference_path must) be provided.")
+    p_input.add_argument("--f5_batch_num", action="store", type=int, default=20,
+                         required=False,
+                         help="number of reads/files to be processed by each process one time, default 20")
 
     p_call = parser.add_argument_group("CALL")
     p_call.add_argument("--model_path", "-m", action="store", type=str, required=True,
@@ -534,9 +572,6 @@ def main():
                            'the same')
     p_f5.add_argument("--mod_loc", action="store", type=int, required=False, default=0,
                       help='0-based location of the targeted base in the motif, default 0')
-    p_f5.add_argument("--f5_batch_num", action="store", type=int, default=100,
-                      required=False,
-                      help="number of files to be processed by each process one time, default 100")
     p_f5.add_argument("--positions", action="store", type=str,
                       required=False, default=None,
                       help="file with a list of positions interested (must be formatted as tab-separated file"
