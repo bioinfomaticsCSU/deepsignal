@@ -227,9 +227,9 @@ def main():
     sub_extract.add_argument("--nproc", "-p", action="store", type=int, default=1,
                              required=False,
                              help="number of processes to be used, default 1")
-    sub_extract.add_argument("--f5_batch_num", action="store", type=int, default=100,
+    sub_extract.add_argument("--f5_batch_num", action="store", type=int, default=50,
                              required=False,
-                             help="number of files to be processed by each process one time, default 100")
+                             help="number of files to be processed by each process one time, default 50")
 
     sub_extract.set_defaults(func=main_extraction)
 
@@ -240,9 +240,9 @@ def main():
                           help="the input path, can be a signal_feature file from extract_features.py, "
                                "or a directory of fast5 files. If a directory of fast5 files is provided, "
                                "args in FAST5_EXTRACTION should (reference_path must) be provided.")
-    sc_input.add_argument("--f5_batch_num", action="store", type=int, default=20,
+    sc_input.add_argument("--f5_batch_num", action="store", type=int, default=50,
                           required=False,
-                          help="number of reads/files to be processed by each process one time, default 20")
+                          help="number of reads/files to be processed by each process one time, default 50")
 
     sc_call = sub_call_mods.add_argument_group("CALL")
     sc_call.add_argument("--model_path", "-m", action="store", type=str, required=True,

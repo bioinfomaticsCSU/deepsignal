@@ -177,17 +177,17 @@ def _call_mods(features_batch, tf_sess, model, init_learning_rate, batch_size):
             activation_logits, prediction = tf_sess.run(
                 [model.activation_logits, model.prediction], feed_dict=feed_dict)
             accuracy = metrics.accuracy_score(
-                y_true=labels, y_pred=prediction)
+                y_true=b_labels, y_pred=prediction)
             accuracys.append(accuracy)
 
-            for idx in range(labels.shape[0]):
+            for idx in range(b_labels.shape[0]):
                 # chromosome, pos, strand, pos_in_strand, read_name, read_strand, prob_0, prob_1, called_label, seq
                 prob_0, prob_1 = activation_logits[idx][0], activation_logits[idx][1]
                 prob_0_norm = prob_0 / (prob_0 + prob_1)
                 prob_1_norm = prob_1 / (prob_0 + prob_1)
-                pred_str.append("\t".join([sampleinfo[idx], str(prob_0_norm),
+                pred_str.append("\t".join([b_sampleinfo[idx], str(prob_0_norm),
                                            str(prob_1_norm), str(prediction[idx]),
-                                           ''.join([code2base_dna[x] for x in kmers[idx]])]))
+                                           ''.join([code2base_dna[x] for x in b_kmers[idx]])]))
             batch_num += 1
     accuracy = np.mean(accuracys)
 
@@ -326,7 +326,7 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
         p.start()
         pred_str_procs.append(p)
 
-    print("write_process started..")
+    # print("write_process started..")
     p_w = mp.Process(target=_write_predstr_to_file, args=(result_file, pred_str_q))
     p_w.daemon = True
     p_w.start()
@@ -387,7 +387,7 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
     p_call_mods_gpu.daemon = True
     p_call_mods_gpu.start()
 
-    print("write_process started..")
+    # print("write_process started..")
     p_w = mp.Process(target=_write_predstr_to_file, args=(result_file, pred_str_q))
     p_w.daemon = True
     p_w.start()
@@ -475,7 +475,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
             p.start()
             predstr_procs.append(p)
 
-        print("write_process started..")
+        # print("write_process started..")
         p_w = mp.Process(target=_write_predstr_to_file, args=(result_file, pred_str_q))
         p_w.daemon = True
         p_w.start()
@@ -504,9 +504,9 @@ def main():
                          help="the input path, can be a signal_feature file from extract_features.py, "
                               "or a directory of fast5 files. If a directory of fast5 files is provided, "
                               "args in FAST5_EXTRACTION should (reference_path must) be provided.")
-    p_input.add_argument("--f5_batch_num", action="store", type=int, default=20,
+    p_input.add_argument("--f5_batch_num", action="store", type=int, default=50,
                          required=False,
-                         help="number of reads/files to be processed by each process one time, default 20")
+                         help="number of reads/files to be processed by each process one time, default 50")
 
     p_call = parser.add_argument_group("CALL")
     p_call.add_argument("--model_path", "-m", action="store", type=str, required=True,
