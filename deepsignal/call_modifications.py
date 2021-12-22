@@ -239,7 +239,7 @@ def _call_mods_q(init_learning_rate, class_num, model_path,
 def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
                             corrected_group, basecall_subgroup, normalize_method,
                             motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
-                            methy_label, batch_num,
+                            methy_label, batch_size,
                             init_learning_rate, class_num, model_path,
                             positions,
                             is_rnn, is_base, is_cnn):
@@ -271,11 +271,11 @@ def _fast5s_q_to_pred_str_q(fast5s_q, errornum_q, pred_str_q,
                                                                  positions)
             errornum_q.put(error)
             for features_batch in features_batches:
-                pred_str, accuracy, batch_num = _call_mods(features_batch, sess, model, init_learning_rate, batch_num)
+                pred_str, accuracy, nbatch = _call_mods(features_batch, sess, model, init_learning_rate, batch_size)
 
                 pred_str_q.put(pred_str)
                 accuracy_list.append(accuracy)
-                count += batch_num
+                count += nbatch
         # print('total accuracy in process {}: {}'.format(os.getpid(), np.mean(accuracy_list)))
         print('call_mods process {} ending, proceed {} batches'.format(os.getpid(), count))
 
@@ -342,7 +342,7 @@ def _call_mods_from_fast5s_cpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
     for p in pred_str_procs:
         p.join()
 
-    print("finishing the write_process..")
+    # print("finishing the write_process..")
     pred_str_q.put("kill")
 
     p_w.join()
@@ -406,7 +406,7 @@ def _call_mods_from_fast5s_gpu(motif_seqs, chrom2len, fast5s_q, len_fast5s,
 
     p_call_mods_gpu.join()
 
-    print("finishing the write_process..")
+    # print("finishing the write_process..")
     pred_str_q.put("kill")
 
     p_w.join()
@@ -483,7 +483,7 @@ def call_mods(input_path, model_path, result_file, kmer_len, cent_signals_len,
         for p in predstr_procs:
             p.join()
 
-        print("finishing the write_process..")
+        # print("finishing the write_process..")
         pred_str_q.put("kill")
 
         p_rf.join()
