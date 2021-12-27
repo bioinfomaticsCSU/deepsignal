@@ -169,15 +169,15 @@ def main():
     se_input.add_argument("--basecall_subgroup", action="store", type=str, required=False,
                           default='BaseCalled_template',
                           help='the corrected subgroup of fast5 files. default BaseCalled_template')
-    se_input.add_argument("--reference_path", action="store",
-                          type=str, required=True,
-                          help="the reference file to be used, usually is a .fa file")
     se_input.add_argument("--is_dna", action="store", type=str, required=False,
                           default='yes',
                           help='whether the fast5 files from DNA sample or not. '
                                'default true, t, yes, 1. '
                                'set this option to no/false/0 if '
                                'the fast5 files are from RNA sample.')
+    se_input.add_argument("--reference_path", action="store",
+                          type=str, required=False, default=None,
+                          help="the reference file to be used, usually is a .fa file. (not necessary)")
 
     se_extraction = sub_extract.add_argument_group("EXTRACTION")
     se_extraction.add_argument("--normalize_method", action="store", type=str, choices=["mad", "zscore"],
@@ -281,9 +281,6 @@ def main():
     sc_f5.add_argument("--basecall_subgroup", action="store", type=str, required=False,
                        default='BaseCalled_template',
                        help='the corrected subgroup of fast5 files. default BaseCalled_template')
-    sc_f5.add_argument("--reference_path", action="store",
-                       type=str, required=False,
-                       help="the reference file to be used, usually is a .fa file")
     sc_f5.add_argument("--is_dna", action="store", type=str, required=False,
                        default='yes',
                        help='whether the fast5 files from DNA sample or not. '
@@ -314,6 +311,9 @@ def main():
                             " with chromosome, position (in fwd strand), and strand. motifs/mod_loc are still "
                             "need to be set. --positions is used to narrow down the range of the trageted "
                             "motif locs. default None")
+    sc_f5.add_argument("--reference_path", action="store",
+                       type=str, required=False, default=None,
+                       help="the reference file to be used, usually is a .fa file. (not necessary)")
 
     sub_call_mods.add_argument("--nproc", "-p", action="store", type=int, default=1,
                                required=False, help="number of processes to be used, default 1.")

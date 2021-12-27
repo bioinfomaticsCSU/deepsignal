@@ -104,7 +104,7 @@ cat fast5s.al.guppy/*.fastq > fast5s.al.guppy.fastq
 tombo preprocess annotate_raw_with_fastqs --fast5-basedir fast5s.al --fastq-filenames fast5s.al.guppy.fastq --sequencing-summary-filenames fast5s.al.guppy/sequencing_summary.txt --basecall-group Basecall_1D_000 --basecall-subgroup BaseCalled_template --overwrite --processes 10
 tombo resquiggle fast5s.al GCF_000146045.2_R64_genomic.fna --processes 10 --corrected-group RawGenomeCorrected_001 --basecall-group Basecall_1D_000 --overwrite
 # 3. deepsignal call_mods
-deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
+deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
 python /path/to/deepsignal/scripts/call_modification_frequency.py --input_path fast5s.al.CpG.call_mods.tsv --result_file fast5s.al.CpG.call_mods.frequency.tsv
 ```
 
@@ -135,14 +135,14 @@ Features of targeted sites can be extracted for training or testing.
 
 For the example data (deepsignal extracts 17-mer-seq and 360-signal features of each CpG motif in reads by default. Note that the value of *--corrected_group* must be the same as that of *--corrected-group* in tombo.):
 ```bash
-deepsignal extract --fast5_dir fast5s.al/ --reference_path GCF_000146045.2_R64_genomic.fna --write_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --corrected_group RawGenomeCorrected_001 --nproc 10
+deepsignal extract --fast5_dir fast5s.al/ --write_path fast5s.al.CpG.signal_features.17bases.rawsignals_360.tsv --corrected_group RawGenomeCorrected_001 --nproc 10
 ```
 
 The extracted_features file is a tab-delimited text file in the following format:
    - **chrom**: the chromosome name
    - **pos**:   0-based position of the targeted base in the chromosome
    - **strand**:    +/-, the aligned strand of the read to the reference
-   - **pos_in_strand**: 0-based position of the targeted base in the aligned strand of the chromosome
+   - **pos_in_strand**: 0-based position of the targeted base in the aligned strand of the chromosome (_legacy column, not necessary for downstream analysis_)
    - **readname**:  the read name
    - **read_strand**:   t/c, template or complement
    - **k_mer**: the sequence around the targeted base
@@ -162,16 +162,16 @@ deepsignal call_mods --input_path fast5s.al.CpG.signal_features.17bases.rawsigna
 **The modifications can also be called from the fast5 files directly**:
 ```bash
 # use CPU
-deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
+deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu no
 # or use GPU
-CUDA_VISIBLE_DEVICES=0 deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --reference_path GCF_000146045.2_R64_genomic.fna --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu yes
+CUDA_VISIBLE_DEVICES=0 deepsignal call_mods --input_path fast5s.al/ --model_path model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+/bn_17.sn_360.epoch_9.ckpt --result_file fast5s.al.CpG.call_mods.tsv --corrected_group RawGenomeCorrected_001 --nproc 10 --is_gpu yes
 ```
 
 The modification_call file is a tab-delimited text file in the following format:
    - **chrom**: the chromosome name
    - **pos**:   0-based position of the targeted base in the chromosome
    - **strand**:    +/-, the aligned strand of the read to the reference
-   - **pos_in_strand**: 0-based position of the targeted base in the aligned strand of the chromosome
+   - **pos_in_strand**: 0-based position of the targeted base in the aligned strand of the chromosome (_legacy column, not necessary for downstream analysis_)
    - **readname**:  the read name
    - **read_strand**:   t/c, template or complement
    - **prob_0**:    [0, 1], the probability of the targeted base predicted as 0 (unmethylated)
@@ -188,7 +188,7 @@ The modification_frequency file is a tab-delimited text file in the following fo
    - **chrom**: the chromosome name
    - **pos**:   0-based position of the targeted base in the chromosome
    - **strand**:    +/-, the aligned strand of the read to the reference
-   - **pos_in_strand**: 0-based position of the targeted base in the aligned strand of the chromosome
+   - **pos_in_strand**: 0-based position of the targeted base in the aligned strand of the chromosome (_legacy column, not necessary for downstream analysis_)
    - **prob_0_sum**:    sum of the probabilities of the targeted base predicted as 0 (unmethylated)
    - **prob_1_sum**:    sum of the probabilities of the targeted base predicted as 1 (methylated)
    - **count_modified**:    number of reads in which the targeted base counted as modified

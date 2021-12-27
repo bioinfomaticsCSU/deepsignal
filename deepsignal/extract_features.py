@@ -215,6 +215,10 @@ def _rescale_signals(rawsignals, scaling, offset):
 def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_method,
                       motif_seqs, methyloc, chrom2len, kmer_len, raw_signals_len,
                       methy_label, positions):
+    if kmer_len % 2 == 0:
+        raise ValueError("kmer_len must be odd")
+    num_bases = (kmer_len - 1) // 2
+
     features_list = []
     error = 0
     for fast5_fp in fast5s:
@@ -236,30 +240,25 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
             readname, strand, alignstrand, chrom, \
                 chrom_start = _get_alignment_info_from_fast5(fast5_fp, corrected_group, basecall_subgroup)
 
-            chromlen = chrom2len[chrom]
-            if alignstrand == '+':
-                chrom_start_in_alignstrand = chrom_start
-            else:
-                chrom_start_in_alignstrand = chromlen - (chrom_start + len(genomeseq))
+            try:
+                chromlen = chrom2len[chrom] if chrom2len is not None else None
+            except KeyError:
+                print("warning - chrom_name in fast5 not in provided reference genome!")
+                chromlen = None
 
             # tsite_locs = []
             # for mseq in motif_seqs:
             #     tsite_locs += get_refloc_of_methysite_in_motif(genomeseq, mseq, methyloc)
             tsite_locs = get_refloc_of_methysite_in_motif(genomeseq, set(motif_seqs), methyloc)
 
-            if kmer_len % 2 == 0:
-                raise ValueError("kmer_len must be odd")
-            num_bases = (kmer_len - 1) // 2
-
             for loc_in_read in tsite_locs:
                 if num_bases <= loc_in_read < len(genomeseq) - num_bases:
-                    loc_in_ref = loc_in_read + chrom_start_in_alignstrand
-
-                    # cpgid = readname + chrom + alignstrand + str(cpgloc_in_ref) + strand
                     if alignstrand == '-':
-                        pos = chromlen - 1 - loc_in_ref
+                        pos = chrom_start + len(genomeseq) - 1 - loc_in_read
+                        pos_in_strand = chromlen - 1 - pos if chromlen is not None else -1
                     else:
-                        pos = loc_in_ref
+                        pos = chrom_start + loc_in_read
+                        pos_in_strand = pos if chromlen is not None else -1
 
                     if (positions is not None) and (key_sep.join([chrom, str(pos), alignstrand]) not in positions):
                         continue
@@ -276,7 +275,7 @@ def _extract_features(fast5s, corrected_group, basecall_subgroup, normalize_meth
 
                     cent_signals = _get_central_signals(k_signals, raw_signals_len)
 
-                    features_list.append((chrom, pos, alignstrand, loc_in_ref, readname, strand,
+                    features_list.append((chrom, pos, alignstrand, pos_in_strand, readname, strand,
                                           k_mer, signal_means, signal_stds, signal_lens,
                                           cent_signals, methy_label))
         except Exception:
@@ -293,14 +292,14 @@ def _features_to_str(features):
     :param features: a tuple
     :return:
     """
-    chrom, pos, alignstrand, loc_in_ref, readname, strand, k_mer, signal_means, signal_stds, \
+    chrom, pos, alignstrand, pos_in_strand, readname, strand, k_mer, signal_means, signal_stds, \
         signal_lens, cent_signals, methy_label = features
     means_text = ','.join([str(x) for x in np.around(signal_means, decimals=6)])
     stds_text = ','.join([str(x) for x in np.around(signal_stds, decimals=6)])
     signal_len_text = ','.join([str(x) for x in signal_lens])
     cent_signals_text = ','.join([str(x) for x in cent_signals])
 
-    return "\t".join([chrom, str(pos), alignstrand, str(loc_in_ref), readname, strand, k_mer, means_text,
+    return "\t".join([chrom, str(pos), alignstrand, str(pos_in_strand), readname, strand, k_mer, means_text,
                       stds_text, signal_len_text, cent_signals_text, str(methy_label)])
 
 
@@ -405,7 +404,10 @@ def _extract_preprocess(fast5_dir, is_recursive, motifs, is_dna, reference_path,
     motif_seqs = get_motif_seqs(motifs, is_dna)
 
     print("read genome reference file..")
-    chrom2len = get_contig2len(reference_path)
+    if reference_path is None:
+        chrom2len = None
+    else:
+        chrom2len = get_contig2len(reference_path)
 
     print("read position file if it is not None..")
     positions = None
@@ -497,15 +499,15 @@ def main():
     ep_input.add_argument("--basecall_subgroup", action="store", type=str, required=False,
                           default='BaseCalled_template',
                           help='the corrected subgroup of fast5 files. default BaseCalled_template')
-    ep_input.add_argument("--reference_path", action="store",
-                          type=str, required=True,
-                          help="the reference file to be used, usually is a .fa file")
     ep_input.add_argument("--is_dna", action="store", type=str, required=False,
                           default='yes',
                           help='whether the fast5 files from DNA sample or not. '
                                'default true, t, yes, 1. '
                                'set this option to no/false/0 if '
                                'the fast5 files are from RNA sample.')
+    ep_input.add_argument("--reference_path", action="store",
+                          type=str, required=False, default=None,
+                          help="the reference file to be used, usually is a .fa file. (not necessary)")
 
     ep_extraction = extraction_parser.add_argument_group("EXTRACTION")
     ep_extraction.add_argument("--normalize_method", action="store", type=str, choices=["mad", "zscore"],

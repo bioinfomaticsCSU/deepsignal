@@ -545,9 +545,6 @@ def main():
     p_f5.add_argument("--basecall_subgroup", action="store", type=str, required=False,
                       default='BaseCalled_template',
                       help='the corrected subgroup of fast5 files. default BaseCalled_template')
-    p_f5.add_argument("--reference_path", action="store",
-                      type=str, required=False,
-                      help="the reference file to be used, usually is a .fa file")
     p_f5.add_argument("--is_dna", action="store", type=str, required=False,
                       default='yes',
                       help='whether the fast5 files from DNA sample or not. '
@@ -578,6 +575,9 @@ def main():
                            " with chromosome, position (in fwd strand), and strand. motifs/mod_loc are still "
                            "need to be set. --positions is used to narrow down the range of the trageted "
                            "motif locs. default None")
+    p_f5.add_argument("--reference_path", action="store",
+                      type=str, required=False, default=None,
+                      help="the reference file to be used, usually is a .fa file. (not necessary)")
 
     parser.add_argument("--nproc", "-p", action="store", type=int, default=1,
                         required=False, help="number of processes to be used, default 1.")
