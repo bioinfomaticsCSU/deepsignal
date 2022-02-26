@@ -23,19 +23,23 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-class PyTest(TestCommand):
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = ['--strict', '--verbose', '--tb=long', 'tests']
-        self.test_suite = True
-
-    def run_tests(self):
-        import pytest
-        errno = pytest.main(self.test_args)
-        sys.exit(errno)
+# class PyTest(TestCommand):
+#     def finalize_options(self):
+#         TestCommand.finalize_options(self)
+#         self.test_args = ['--strict', '--verbose', '--tb=long', 'tests']
+#         self.test_suite = True
+#
+#     def run_tests(self):
+#         import pytest
+#         errno = pytest.main(self.test_args)
+#         sys.exit(errno)
 
 
 long_description = read('README.rst')
+
+
+with open('requirements.txt', 'r') as rf:
+    required = rf.read().splitlines()
 
 
 setup(
@@ -50,11 +54,12 @@ setup(
     # tests_require=['pytest'],
     # TODO: when use python setup.py install, tensorflow>=1.8.0 may not work,
     # TODO: but it looks fine when using pip
-    install_requires=['numpy>=1.15.3',
-                      'h5py>=2.8.0',
-                      'statsmodels>=0.9.0',
-                      'scikit-learn>=0.20.1',
-                      ],
+    # install_requires=['numpy>=1.15.3',
+    #                   'h5py>=2.8.0',
+    #                   'statsmodels>=0.9.0',
+    #                   'scikit-learn>=0.20.1',
+    #                   ],
+    install_requires=required,
     # cmdclass={'test': PyTest},
     author_email='543943952@qq.com',
     description='A deep-learning method for detecting DNA methylation state from Oxford Nanopore sequencing reads',
