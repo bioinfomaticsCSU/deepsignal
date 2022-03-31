@@ -37,7 +37,7 @@ deepsignal is built on Python3. [tombo](https://github.com/nanoporetech/tombo) i
 We highly recommend using a virtual environment for the installation of deepsignal and its dependencies. A virtual environment can be created and (de)activated as follows by using [conda](https://conda.io/docs/):
 ```bash
 # create
-conda create -n deepsignalenv python=3.6
+conda create -n deepsignalenv python=3.7
 # activate
 conda activate deepsignalenv
 # deactivate

@@ -8,6 +8,8 @@ v0.2.0
 ------
 make `--reference_path` not a required input in *extract* and *call_mods* module
 
+handle gz file in call_freq script
+
 v0.1.10
 -------
 make sure results of each read be written together in call_mods' output
