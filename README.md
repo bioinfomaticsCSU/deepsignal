@@ -86,13 +86,13 @@ The models we trained can be downloaded from [google drive](https://drive.google
 
 Currently we have trained the following models:
    * _model.CpG.R9.4_1D.human_hx1.bn17.sn360.v0.1.7+.tar.gz_: A CpG model trained using HX1 R9.4 1D reads (for **deepsignal>=0.1.7**).
-   * _model.CpG.R9.4_1D.human_hx1.bn17.sn360.tar.gz_: A CpG model trained using HX1 R9.4 1D reads (for **deepsignal<=0.1.6**).
-   * _model.GATC.R9_2D.tem.puc19.bn17.sn360.tar.gz_: A G*A*TC model trained using pUC19 R9 2D template reads (for **deepsignal<=0.1.6**).
+   * ~~_model.CpG.R9.4_1D.human_hx1.bn17.sn360.tar.gz_: A CpG model trained using HX1 R9.4 1D reads (for **deepsignal<=0.1.6**).~~
+   * ~~_model.GATC.R9_2D.tem.puc19.bn17.sn360.tar.gz_: A G*A*TC model trained using pUC19 R9 2D template reads (for **deepsignal<=0.1.6**).~~
 
 ## Example data
 The example data can be downloaded from [google drive](https://drive.google.com/open?id=1zkK8Q1gyfviWWnXUBMcIwEDw3SocJg7P).
 
-   * _fast5s.sample.tar.gz_: The data contain ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.
+   * ~~_fast5s.sample.tar.gz_: The data contain ~4000 yeast R9.4 1D reads each with called events (basecalled by Albacore), along with a genome reference.~~
 
 ## Quick start
 To call modifications, the raw fast5 files should be basecalled ([Guppy or Albacore](https://nanoporetech.com/community)) and then be re-squiggled by [tombo](https://github.com/nanoporetech/tombo). At last, modifications of specified motifs can be called by deepsignal. The following are commands to call 5mC in CG contexts from the example data:
